@@ -44,6 +44,15 @@ export function createServer(): Express {
     })
   })
 
+  // Routes: Render Health Check (compatible with Render health check path)
+  app.get('/healthz', (req: Request, res: Response) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: NODE_ENV,
+    })
+  })
+
   // Routes: API
   app.use('/api/products', productRoutes)
   app.use('/api/orders', orderRoutes)
