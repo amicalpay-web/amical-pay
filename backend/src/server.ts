@@ -7,6 +7,7 @@ import productRoutes from './routes/products.js'
 import orderRoutes from './routes/orders.js'
 import adminRoutes from './routes/admin.js'
 import webhookRoutes from './routes/webhook.js'
+import fazerRoutes from './routes/fazer.js'
 
 export function createServer(): Express {
   const app = express()
@@ -47,6 +48,7 @@ export function createServer(): Express {
   app.use('/api/products', productRoutes)
   app.use('/api/orders', orderRoutes)
   app.use('/api/webhook', webhookRoutes)
+  app.use('/api/fazer', fazerRoutes)
   app.use('/api/admin', authMiddleware, adminRoutes)
 
   // Routes: 404
