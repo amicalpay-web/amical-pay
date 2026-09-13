@@ -1,19 +1,30 @@
-services:
-  # Backend API - Node.js/Express
-  - type: web
-    name: amical-pay-api
-    env: node
-    branch: main
-    buildCommand: cd backend && npm install && npm run build
-    startCommand: cd backend && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: FAZER_API_KEY
-        fromSecret: FAZER_API_KEY
-      - key: ADMIN_TOKEN
-        fromSecret: ADMIN_TOKEN
-      - key: FRONTEND_URL
-        value: https://amical-pay-frontend.onrender.com
-      - key: LOG_LEVEL
-        value: info
+# Exported from Render on 2026-09-13T23:15:41Z
+# AmicalPay Backend - Render Blueprint Configuration
+
+version: "1"
+
+projects:
+  - name: Amical-pay
+    environments:
+      - name: amicalpay-web / amical-pay
+        services:
+          - type: web
+            name: amical-pay-api
+            runtime: node
+            repo: https://github.com/amicalpay-web/amical-pay
+            plan: free
+            region: oregon
+            rootDir: backend
+            buildCommand: npm install && npm run build
+            startCommand: npm start
+            healthCheckPath: /healthz
+            autoDeployTrigger: commit
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: FAZER_API_KEY
+                sync: false
+              - key: FRONTEND_URL
+                value: https://amical-pay-frontend.onrender.com
+              - key: LOG_LEVEL
+                value: info
