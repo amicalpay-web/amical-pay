@@ -98,11 +98,11 @@ function TrackOrder() {
                         {step.icon}
                       </div>
                       <span
-                        className={${
+                        className={`${
                           order.status === step.status
                             ? 'text-white font-semibold'
                             : 'text-gray-400'
-                        }}
+                        }`}
                       >
                         {step.label}
                       </span>

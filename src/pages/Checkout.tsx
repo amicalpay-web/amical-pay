@@ -39,13 +39,11 @@ function Checkout() {
         whatsappNumber: item.whatsappNumber || '',
         email: item.email || '',
         region: item.product.region,
-        currency: currency as any,
+        currency,
         status: 'pending',
         paymentMethod: selectedPayment,
         createdAt: new Date(),
-        updatedAt: new Date(),
-        id: '',
-        orderNumber: '',
+        totalPrice: price,
       })
       clearCart()
       navigate(`/order-confirmation/${order.orderNumber}`)
@@ -97,17 +95,17 @@ function Checkout() {
             ].map((method) => (
               <label
                 key={method.id}
-                className="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedPayment === method.id
+                className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  selectedPayment === method.id as any
                     ? 'border-amical-orange bg-amical-dark-secondary'
                     : 'border-amical-dark-tertiary hover:border-amical-orange/50'
-                }"
+                }`}
               >
                 <input
                   type="radio"
                   name="payment"
                   value={method.id}
-                  checked={selectedPayment === method.id}
+                  checked={selectedPayment === method.id as any}
                   onChange={(e) => setSelectedPayment(e.target.value as any)}
                   className="mr-3"
                   disabled={method.id === 'paypal'}

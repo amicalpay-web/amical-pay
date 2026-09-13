@@ -72,7 +72,7 @@ function OrderConfirmation() {
         </Card>
 
         <div className="space-y-4">
-          <Button className="w-full" onClick={() => navigate(`/track-order?order=${order.orderNumber}")}>
+          <Button className="w-full" onClick={() => navigate(`/track-order?order=${order.orderNumber}`)}>
             Suivre ma commande
           </Button>
           <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
