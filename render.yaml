@@ -1,6 +1,6 @@
 services:
   # Backend API - Node.js/Express
-  - type: web_service
+  - type: web
     name: amical-pay-api
     env: node
     branch: main
