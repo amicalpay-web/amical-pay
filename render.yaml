@@ -1,31 +1,14 @@
 services:
-  # Frontend Static Site - React/Vite
-  - type: static_site
-    name: amical-pay-frontend
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: VITE_API_URL
-        value: https://amical-pay-api.onrender.com
-    routes:
-      - path: /*
-        destination: /index.html
-        priority: 1
-
   # Backend API - Node.js/Express
   - type: web_service
     name: amical-pay-api
-    runtime: node
+    env: node
+    branch: main
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
-    plan: starter
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 5000
       - key: FAZER_API_KEY
         fromSecret: FAZER_API_KEY
       - key: ADMIN_TOKEN
