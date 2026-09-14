@@ -1,7 +1,5 @@
-# Exported from Render on 2026-09-14
-# AmicalPay Full-Stack Deployment - Frontend + Backend
-# Single repository: amicalpay-web/amical-pay
-
+# Amical Pay - Render Blueprint
+# Frontend + Backend in one repository
 version: "1"
 
 projects:
@@ -9,7 +7,7 @@ projects:
     environments:
       - name: Production
         services:
-          # Backend API Service
+          # Backend API
           - type: web
             name: amical-pay-api
             runtime: node
@@ -24,8 +22,6 @@ projects:
             envVars:
               - key: NODE_ENV
                 value: production
-              - key: PORT
-                value: "10000"
               - key: LOG_LEVEL
                 value: info
               - key: FAZER_API_KEY
@@ -35,7 +31,7 @@ projects:
               - key: FRONTEND_URL
                 value: https://amical-pay-frontend.onrender.com
 
-          # Frontend Service
+          # Frontend application
           - type: web
             name: amical-pay-frontend
             runtime: node
@@ -43,7 +39,7 @@ projects:
             plan: free
             region: oregon
             buildCommand: npm install && npm run build
-            startCommand: npm run preview
+            startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
             healthCheckPath: /
             autoDeployTrigger: commit
             envVars:
