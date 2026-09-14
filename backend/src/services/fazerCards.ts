@@ -18,6 +18,10 @@ import {
   FazerCatalogSnapshot,
   FazerTopupCatalogPage,
   FazerTopupOffersResponse,
+  FazerValidationCategory,
+  FazerValidationCatalogResponse,
+  FazerPlayerValidationRequest,
+  FazerPlayerValidationResponse,
 } from '../types/fazer.js'
 
 // FazerCards API Configuration
@@ -29,7 +33,7 @@ const RATE_LIMIT_RETRIES = 5
 /**
  * Create headers for FazerCards API requests
  */
-function createHeaders(): Record<string, string> {
+function createHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
   if (!FAZER_API_KEY) {
     throw new Error('FAZER_API_KEY is not configured')
   }
@@ -38,6 +42,7 @@ function createHeaders(): Record<string, string> {
     'X-API-Key': FAZER_API_KEY,
     'Content-Type': 'application/json',
     'Accept': 'application/json',
+    ...extraHeaders,
   }
 }
 
@@ -47,10 +52,14 @@ function createHeaders(): Record<string, string> {
 async function fazerRequest<T>(
   method: 'GET' | 'POST',
   path: string,
-  body?: any
+  body?: unknown,
+  extraHeaders: Record<string, string> = {}
 ): Promise<T> {
   if (!FAZER_API_KEY) {
-    throw new Error('FAZER_API_KEY environment variable is not set')
+    const error = new Error('FAZER_API_KEY environment variable is not set') as FazerApiError
+    error.statusCode = 503
+    error.status = 503
+    throw error
   }
 
   const url = `${FAZER_API_BASE}${path}`
@@ -62,7 +71,7 @@ async function fazerRequest<T>(
     try {
       const response = await fetch(url, {
         method,
-        headers: createHeaders(),
+        headers: createHeaders(extraHeaders),
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       })
@@ -86,6 +95,7 @@ async function fazerRequest<T>(
           data?.message || data?.error || `FazerCards API error: ${response.status}`
         ) as FazerApiError
         error.statusCode = response.status
+        error.status = response.status
         error.fazerId = data?.id
         error.fazerCode = data?.code
         error.fazerMessage = data?.message || data?.error
@@ -156,10 +166,7 @@ export async function getCategories(): Promise<FazerCategory[]> {
  * FazerCards returns price_usd and name; the legacy shape is kept for callers.
  */
 export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
-  const response = await fazerRequest<FazerTopupOffersResponse>(
-    'GET',
-    `/topups/offers?category_id=${encodeURIComponent(categoryId)}`
-  )
+  const response = await getTopupOffers(categoryId)
 
   return response.offers.map((offer) => ({
     offer_id: offer.offer_id,
@@ -172,6 +179,65 @@ export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
     description: response.name,
     is_popular: false,
   }))
+}
+
+/**
+ * Get the raw offers response, including the dynamic fields required by
+ * FazerCards for player validation and ordering.
+ */
+export async function getTopupOffers(categoryId: string): Promise<FazerTopupOffersResponse> {
+  return fazerRequest<FazerTopupOffersResponse>(
+    'GET',
+    `/topups/offers?category_id=${encodeURIComponent(categoryId)}`
+  )
+}
+
+/**
+ * Get the dynamic list of games/categories that support Player ID validation.
+ * Never hard-code category IDs or field names: FazerCards owns this catalog.
+ */
+export async function getPlayerValidationCatalog(): Promise<FazerValidationCategory[]> {
+  const response = await fazerRequest<FazerValidationCatalogResponse>(
+    'GET',
+    '/topups/validate-id'
+  )
+
+  return response.items
+}
+
+/**
+ * Validate a player through FazerCards before accepting an AmicalPay order.
+ */
+export async function validatePlayer(
+  categoryId: string,
+  fields: Record<string, unknown>
+): Promise<FazerPlayerValidationResponse> {
+  if (!categoryId || !fields || Object.keys(fields).length === 0) {
+    const error = new Error('categoryId and validation fields are required') as FazerApiError
+    error.statusCode = 400
+    error.status = 400
+    throw error
+  }
+
+  const request: FazerPlayerValidationRequest = {
+    category_id: categoryId,
+    fields,
+  }
+
+  const response = await fazerRequest<FazerPlayerValidationResponse>(
+    'POST',
+    '/topups/validate-id',
+    request
+  )
+
+  if (!response.valid) {
+    const error = new Error('FazerCards could not confirm this player ID') as FazerApiError
+    error.statusCode = 422
+    error.status = 422
+    throw error
+  }
+
+  return response
 }
 
 const CATALOG_CACHE_TTL = 5 * 60 * 1000
@@ -265,32 +331,31 @@ function extractNumericAmount(value: string): number | undefined {
 export async function createOrder(
   categoryId: string,
   offerId: string,
-  playerId: string
+  fields: Record<string, unknown>,
+  idempotencyKey?: string
 ): Promise<FazerOrderResponse> {
   try {
     // Validate inputs
-    if (!categoryId || !offerId || !playerId) {
-      throw new Error('Missing required fields: categoryId, offerId, playerId')
+    if (!categoryId || !offerId || !fields || Object.keys(fields).length === 0) {
+      throw new Error('Missing required fields: categoryId, offerId, fields')
     }
 
-    if (!/^\d+$/.test(playerId)) {
-      throw new Error('Invalid player ID format - must be numeric')
-    }
+    // FazerCards validation is mandatory immediately before any supplier order.
+    await validatePlayer(categoryId, fields)
 
-    console.log(`📡 Creating order for player ${playerId}...`)
+    console.log(`📡 Creating FazerCards order for category ${categoryId}...`)
 
     const orderRequest: FazerOrderRequest = {
       category_id: categoryId,
       offer_id: offerId,
-      fields: {
-        player_id: playerId,
-      },
+      fields,
     }
 
     const response = await fazerRequest<FazerOrderResponse>(
       'POST',
       '/topups/order',
-      orderRequest
+      orderRequest,
+      idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}
     )
 
     if (response.status !== 'success') {
@@ -417,41 +482,4 @@ export async function testConnection(): Promise<FazerConnectionTestResult> {
   }
 
   return result
-}
-
-/**
- * Validate a Free Fire Player ID
- * This makes a test request to see if the player exists
- * Note: FazerCards may not have a dedicated validation endpoint,
- * so we might need to attempt a mock order or use their validation if available
- */
-export async function validatePlayerFreeFireLatam(
-  playerId: string
-): Promise<{ valid: boolean; playerName?: string; error?: string }> {
-  try {
-    // Basic format validation
-    if (!playerId || !/^\d+$/.test(playerId)) {
-      return {
-        valid: false,
-        error: 'Invalid Free Fire Player ID format - must be numeric',
-      }
-    }
-
-    // TODO: If FazerCards provides a validation endpoint, use it here
-    // For now, we'll return validation success for numeric IDs
-    // Real validation will happen when creating an order
-
-    console.log(`✅ Free Fire Player ID format validated: ${playerId}`)
-
-    return {
-      valid: true,
-      // Player name would be fetched from FazerCards if their API provides it
-    }
-  } catch (error) {
-    console.error('❌ Error validating player ID:', error)
-    return {
-      valid: false,
-      error: 'Failed to validate player ID',
-    }
-  }
 }
