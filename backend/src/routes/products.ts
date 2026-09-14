@@ -39,7 +39,13 @@ const mockProducts: Record<string, any[]> = {
   ],
 }
 
-function normalizeOffer(offer: any, region: string, index: number): any {
+function normalizeOffer(
+  offer: any,
+  region: string,
+  index: number,
+  categoryId?: string,
+  validationFields?: unknown[]
+): any {
   const price = Number(offer.price_usd ?? offer.price ?? 0)
   return {
     id: `${region.toLowerCase()}-ff-${offer.offer_id}`,
@@ -52,7 +58,9 @@ function normalizeOffer(offer: any, region: string, index: number): any {
     availability: typeof offer.stock === 'number' && offer.stock <= 0 ? 'out_of_stock' : 'in_stock',
     popular: offer.is_popular || index < 2,
     source: 'fazer',
+    fazerCategoryId: categoryId,
     fazerOfferId: offer.offer_id,
+    fazerValidationFields: validationFields,
   }
 }
 
@@ -74,13 +82,11 @@ async function resolveCategoryId(region: string): Promise<string> {
     const text = `${category.category_id} ${category.category_name}`.toLowerCase()
     return hints.some((hint) => text.includes(hint))
   })
-  const fallback = freeFire.find((category) => category.category_id.toLowerCase().includes('auto')) || freeFire[0]
-
-  if (!regional && !fallback) {
+  if (!regional) {
     throw new Error(`No purchasable Free Fire category found for region ${region}`)
   }
 
-  return (regional || fallback).category_id
+  return regional.category_id
 }
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
@@ -101,8 +107,27 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const categoryId = await resolveCategoryId(region)
       console.log(`📡 Fetching ${region} offers from FazerCards category ${categoryId}...`)
-      const offers = await fazer.getOffers(categoryId)
-      products = offers.map((offer, index) => normalizeOffer(offer, region, index))
+      const [offers, validationCategories] = await Promise.all([
+        fazer.getOffers(categoryId),
+        fazer.getPlayerValidationCatalog(),
+      ])
+      const validationCategory = validationCategories.find(
+        (category) => category.category_id === categoryId
+      )
+
+      if (!validationCategory) {
+        throw new Error(`FazerCards category ${categoryId} does not support player validation`)
+      }
+
+      products = offers.map((offer, index) =>
+        normalizeOffer(
+          offer,
+          region,
+          index,
+          categoryId,
+          validationCategory.fields
+        )
+      )
       source = 'fazer'
       console.log(`✅ Fetched ${products.length} products from FazerCards for ${region}`)
     } catch (error) {
@@ -174,12 +199,27 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 
     try {
       const regions = ['LATAM', 'EU', 'BR', 'MENA']
+      const validationCategories = await fazer.getPlayerValidationCatalog()
       for (const region of regions) {
         const categoryId = await resolveCategoryId(region)
         const offers = await fazer.getOffers(categoryId)
+        const validationCategory = validationCategories.find(
+          (category) => category.category_id === categoryId
+        )
+        if (!validationCategory) continue
         for (const offer of offers) {
           const productId = `${region.toLowerCase()}-ff-${offer.offer_id}`
-          if (productId === id) return res.json(normalizeOffer(offer, region, 0))
+          if (productId === id) {
+            return res.json(
+              normalizeOffer(
+                offer,
+                region,
+                0,
+                categoryId,
+                validationCategory.fields
+              )
+            )
+          }
         }
       }
     } catch (error) {
