@@ -1,4 +1,4 @@
-import { Currency, Language, Region } from '@/types';
+import { Currency, Language } from '@/types';
 
 // Currency Configuration
 export const CURRENCIES = {
