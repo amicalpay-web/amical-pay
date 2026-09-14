@@ -11,6 +11,7 @@ import {
 const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\/+$/, '')
 const REQUEST_TIMEOUT = 30000
 const CATALOG_CACHE_TTL = 5 * 60 * 1000
+const FAMILY_TIMEOUT = 20000
 
 type JsonRecord = Record<string, unknown>
 
@@ -370,38 +371,83 @@ async function loadTelegramFamily(): Promise<FazerCatalogFamily> {
   return family
 }
 
+const familyEndpoints: Record<FazerCatalogSource, string> = {
+  topup: '/topups',
+  gamekeys: '/gamekeys',
+  giftcards: '/giftcards',
+  'manual-services': '/manual-services',
+  'steam-topup': '/steam-topup/rates',
+  'steam-gifts': '/steam-gifts/games',
+  telegram: '/telegram',
+}
+
+const familyLoaders: Record<FazerCatalogSource, () => Promise<FazerCatalogFamily>> = {
+  topup: loadTopupFamily,
+  gamekeys: loadGameKeyFamily,
+  giftcards: loadGiftCardFamily,
+  'manual-services': loadManualServiceFamily,
+  'steam-topup': loadSteamTopupFamily,
+  'steam-gifts': loadSteamGiftFamily,
+  telegram: loadTelegramFamily,
+}
+
+function loadFamilySafely(source: FazerCatalogSource): Promise<FazerCatalogFamily> {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (family: FazerCatalogFamily): void => {
+      if (settled) return
+      settled = true
+      resolve(family)
+    }
+    const timeout = setTimeout(() => {
+      const family = createFamily(source, familyEndpoints[source])
+      family.errors.push(toCatalogError(
+        source,
+        familyEndpoints[source],
+        createApiError('FazerCards catalog family timed out', familyEndpoints[source], 504, 'catalog_family_timeout')
+      ))
+      finish(family)
+    }, FAMILY_TIMEOUT)
+
+    familyLoaders[source]().then((family) => {
+      clearTimeout(timeout)
+      finish(family)
+    }).catch((error) => {
+      clearTimeout(timeout)
+      const family = createFamily(source, familyEndpoints[source])
+      family.errors.push(toCatalogError(source, familyEndpoints[source], error))
+      finish(family)
+    })
+  })
+}
+
 let catalogCache: { value: FazerFullCatalog; expiresAt: number } | undefined
 let catalogRequest: Promise<FazerFullCatalog> | undefined
 
 export async function getFullCatalog(): Promise<FazerFullCatalog> {
   if (catalogCache && catalogCache.expiresAt > Date.now()) return catalogCache.value
   if (!catalogRequest) {
-    catalogRequest = Promise.all([
-      loadTopupFamily(),
-      loadGameKeyFamily(),
-      loadGiftCardFamily(),
-      loadManualServiceFamily(),
-      loadSteamTopupFamily(),
-      loadSteamGiftFamily(),
-      loadTelegramFamily(),
-    ]).then((sources) => {
-      const value: FazerFullCatalog = {
-        fetched_at: new Date().toISOString(),
-        sources,
-        errors: sources.flatMap((source) => source.errors),
-      }
-      catalogCache = { value, expiresAt: Date.now() + CATALOG_CACHE_TTL }
-      return value
-    }).finally(() => {
-      catalogRequest = undefined
-    })
+    catalogRequest = Promise.all((Object.keys(familyLoaders) as FazerCatalogSource[]).map(loadFamilySafely))
+      .then((sources) => {
+        const value: FazerFullCatalog = {
+          fetched_at: new Date().toISOString(),
+          sources,
+          errors: sources.flatMap((source) => source.errors),
+        }
+        catalogCache = { value, expiresAt: Date.now() + CATALOG_CACHE_TTL }
+        return value
+      }).finally(() => {
+        catalogRequest = undefined
+      })
   }
   return catalogRequest
 }
 
 export async function getCatalogFamily(source: FazerCatalogSource): Promise<FazerCatalogFamily | undefined> {
-  const catalog = await getFullCatalog()
-  return catalog.sources.find((family) => family.source === source)
+  if (catalogCache && catalogCache.expiresAt > Date.now()) {
+    return catalogCache.value.sources.find((family) => family.source === source)
+  }
+  return loadFamilySafely(source)
 }
 
 export async function getGameKeyOffers(gameId: string): Promise<JsonRecord> {
