@@ -138,6 +138,31 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 })
 
+// GET /api/products/catalog
+// Import and return every FazerCards category and offer.
+router.get('/catalog', async (_req: Request, res: Response) => {
+  try {
+    const snapshot = await fazer.getCatalog()
+    res.setHeader('Cache-Control', 'private, max-age=300')
+    res.json({
+      source: 'fazer',
+      ...snapshot,
+    })
+  } catch (error) {
+    const details = error instanceof Error ? error.message : 'Unknown FazerCards error'
+    const failures = error && typeof error === 'object' && 'failures' in error
+      ? (error as { failures?: Array<{ categoryId: string; error: string }> }).failures
+      : undefined
+
+    res.status(502).json({
+      error: 'FazerCards catalog import failed',
+      source: 'fazer_error',
+      details,
+      failures,
+    })
+  }
+})
+
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
