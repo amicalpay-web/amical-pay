@@ -27,7 +27,7 @@ projects:
               - key: FAZER_API_KEY
                 sync: false
               - key: ADMIN_TOKEN
-                sync: false
+                generateValue: true
               - key: FRONTEND_URL
                 value: https://amical-pay-frontend.onrender.com
 
