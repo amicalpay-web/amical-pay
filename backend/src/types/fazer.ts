@@ -27,6 +27,7 @@ export interface FazerTopupCategory {
   name: string
   note?: string
   imageurl?: string | null
+  metadata?: Record<string, unknown>
 }
 
 export interface FazerCatalogMeta {
@@ -47,6 +48,11 @@ export interface FazerTopupOffer {
   name: string
   price_usd: string | number
   stock?: number
+  description?: string
+  image?: string | null
+  image_url?: string | null
+  metadata?: Record<string, unknown>
+  fields?: FazerValidationField[]
 }
 
 export interface FazerValidationField {
@@ -63,6 +69,7 @@ export interface FazerTopupOffersResponse {
   offers: FazerTopupOffer[]
   fields?: FazerValidationField[]
   note?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface FazerValidationCategory {
@@ -94,6 +101,10 @@ export interface FazerPlayerValidationResponse {
 export interface FazerCatalogItem {
   category: FazerCategory
   offers: FazerOffer[]
+  fields?: FazerValidationField[]
+  note?: string
+  metadata?: Record<string, unknown>
+  error?: string
 }
 
 export interface FazerCatalogSnapshot {
@@ -101,6 +112,7 @@ export interface FazerCatalogSnapshot {
   total_categories: number
   total_offers: number
   categories: FazerCatalogItem[]
+  errors?: Array<{ categoryId: string; categoryName: string; error: string }>
 }
 
 // ============ OFFERS / PACKAGES ============
@@ -118,6 +130,10 @@ export interface FazerOffer {
   description?: string
   image_url?: string
   is_popular?: boolean
+  fields?: FazerValidationField[]
+  metadata?: Record<string, unknown>
+  category_id?: string
+  category_name?: string
 }
 
 export interface FazerOffersResponse {
