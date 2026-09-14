@@ -68,7 +68,7 @@ function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-4 bg-amical-dark-secondary">
+      <section id="how-it-works" className="py-20 px-4 bg-amical-dark-secondary">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-white mb-12 text-center">
             Comment ça marche
