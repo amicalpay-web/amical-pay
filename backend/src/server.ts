@@ -14,11 +14,22 @@ export function createServer(): Express {
   const app = express()
   const FRONTEND_URL = getEnv('FRONTEND_URL')
   const NODE_ENV = getEnv('NODE_ENV')
+  const allowedOrigins = FRONTEND_URL
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean)
 
   // Middleware: CORS
   app.use(
     cors({
-      origin: FRONTEND_URL,
+      origin: (origin, callback) => {
+        // Allow server-to-server requests and health checks without an Origin.
+        if (!origin || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+          callback(null, true)
+          return
+        }
+        callback(new Error(`CORS origin not allowed: ${origin}`))
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
