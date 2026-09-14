@@ -103,49 +103,62 @@ router.get(
 )
 
 /**
+ * GET /api/fazer/validation-options
+ * Return FazerCards' dynamic validation categories and fields.
+ */
+router.get(
+  '/validation-options',
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const items = await fazer.getPlayerValidationCatalog()
+      res.json({ status: 'success', items })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
  * POST /api/fazer/validate-player
- * Validate a Free Fire Player ID
- * Body: { playerId: string, region: string }
+ * Validate a player through FazerCards.
+ * Body: { categoryId: string, fields: Record<string, unknown> }
  */
 router.post(
   '/validate-player',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { playerId, region } = req.body
-
-      if (!playerId) {
-        res.status(400).json({
-          error: 'Missing player ID',
-        })
-        return
+      const { categoryId, fields } = req.body as {
+        categoryId?: unknown
+        fields?: unknown
       }
 
-      // Validate based on region
-      let validationResult
-
-      if (region === 'LATAM') {
-        validationResult = await fazer.validatePlayerFreeFireLatam(playerId)
-      } else {
-        validationResult = {
-          valid: false,
-          error: `Region ${region} validation not yet implemented`,
-        }
-      }
-
-      if (!validationResult.valid) {
+      if (
+        typeof categoryId !== 'string' ||
+        !categoryId.trim() ||
+        !fields ||
+        typeof fields !== 'object' ||
+        Array.isArray(fields)
+      ) {
         res.status(400).json({
           status: 'error',
-          error: validationResult.error,
+          error: 'categoryId and fields are required',
         })
         return
       }
+
+      const validationResult = await fazer.validatePlayer(
+        categoryId.trim(),
+        fields as Record<string, unknown>
+      )
 
       res.json({
         status: 'success',
         valid: true,
-        playerId,
-        playerName: validationResult.playerName,
-        message: 'Player ID is valid',
+        categoryId: validationResult.category_id,
+        playerId: validationResult.player_id,
+        playerName: validationResult.player_name,
+        region: validationResult.region,
+        message: 'Player ID was confirmed by FazerCards',
       })
     } catch (error) {
       next(error)
