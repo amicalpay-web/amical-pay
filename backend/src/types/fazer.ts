@@ -9,6 +9,7 @@
 export interface FazerCategory {
   category_id: string
   category_name: string
+  name?: string
   description?: string
   image_url?: string
 }
@@ -18,7 +19,7 @@ export interface FazerCategoriesResponse {
   categories: FazerCategory[]
 }
 
-// ============ OFFERS / PACKAGES ============
+\n// ============ CURRENT TOP-UP API SHAPES ============\n\nexport interface FazerTopupCategory {\n  category_id: string\n  name: string\n  note?: string\n  imageurl?: string | null\n}\n\nexport interface FazerCatalogMeta {\n  total: number\n  limit: number\n  next_cursor?: string\n  has_more: boolean\n}\n\nexport interface FazerTopupCatalogPage {\n  kind?: string\n  items: FazerTopupCategory[]\n  meta?: FazerCatalogMeta\n}\n\nexport interface FazerTopupOffer {\n  offer_id: string\n  name: string\n  price_usd: string | number\n  stock?: number\n}\n\nexport interface FazerTopupOffersResponse {\n  kind?: string\n  category_id: string\n  name: string\n  offers: FazerTopupOffer[]\n  fields?: Array<{ key: string; label: string; type: string; options?: Array<Record<string, unknown>> }>\n  note?: string\n}\n// ============ OFFERS / PACKAGES ============
 
 export interface FazerOffer {
   offer_id: string
@@ -31,6 +32,8 @@ export interface FazerOffer {
   description?: string
   image_url?: string
   is_popular?: boolean
+  price_usd?: string | number
+  stock?: number
 }
 
 export interface FazerOffersResponse {
