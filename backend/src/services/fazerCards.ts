@@ -177,7 +177,7 @@ export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
     }))
 }
 
-function normalizeOrder(order: FazerOrderPayload): FazerOrderResponse {
+function normalizeOrder(order: FazerOrderPayload): FazerOrderStatusResponse {
   const orderId = order.public_id || order.id || order.order_id || ''
   const amount = Number(order.amount_usd ?? order.amount ?? 0)
   return {
