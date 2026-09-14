@@ -8,6 +8,7 @@ import orderRoutes from './routes/orders.js'
 import adminRoutes from './routes/admin.js'
 import webhookRoutes from './routes/webhook.js'
 import fazerRoutes from './routes/fazer.js'
+import paymentRoutes from './routes/payments.js'
 
 export function createServer(): Express {
   const app = express()
@@ -56,6 +57,7 @@ export function createServer(): Express {
   // Routes: API
   app.use('/api/products', productRoutes)
   app.use('/api/orders', orderRoutes)
+  app.use('/api/payments', paymentRoutes)
   app.use('/api/webhook', webhookRoutes)
   app.use('/api/fazer', fazerRoutes)
   app.use('/api/admin', authMiddleware, adminRoutes)
