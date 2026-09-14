@@ -1,12 +1,29 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import { config } from '../config/env.js'
+import {
+  getPaymentFromResponse,
+  isMonCashConfigured,
+  retrieveOrderPayment,
+  retrieveTransactionPayment,
+} from '../services/moncash.js'
 
 const router = Router()
+
+type CallbackPayload = Record<string, unknown>
+
+function firstString(payload: CallbackPayload, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = payload[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return undefined
+}
 
 // POST /api/webhook/fazer
 // Receive webhook updates from FazerCards
 router.post('/fazer', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { event, order_id, status, data } = req.body
+    const { event, order_id, status } = req.body
 
     console.log(`📨 Webhook received: ${event}`, {
       order_id,
@@ -15,11 +32,6 @@ router.post('/fazer', async (req: Request, res: Response, next: NextFunction) =>
     })
 
     // TODO: Implement webhook validation and order status update
-    // 1. Verify webhook signature
-    // 2. Update order status in database
-    // 3. Send notification to customer
-    // 4. Log for audit trail
-
     res.json({
       received: true,
       event,
@@ -31,22 +43,52 @@ router.post('/fazer', async (req: Request, res: Response, next: NextFunction) =>
 })
 
 // MonCash return URL.
-// MonCash may redirect here with transactionId/orderId query parameters.
-// Payment verification must happen server-to-server before an order is marked paid.
-const handleMonCashReturn = (req: Request, res: Response, next: NextFunction) => {
+// MonCash returns transactionId/orderId here; payment is verified server-to-server.
+const handleMonCashReturn = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const payload = req.method === 'GET' ? req.query : req.body
+    const payload = (req.method === 'GET' ? req.query : req.body) as CallbackPayload
+    const orderId = firstString(payload, ['orderId', 'order_id'])
+    const transactionId = firstString(payload, ['transactionId', 'transaction_id'])
+    let verificationStatus = 'pending'
+    let payment: Record<string, unknown> = {}
+
+    if (isMonCashConfigured() && (orderId || transactionId)) {
+      try {
+        const response = transactionId
+          ? await retrieveTransactionPayment(transactionId)
+          : await retrieveOrderPayment(orderId as string)
+        payment = getPaymentFromResponse(response) as Record<string, unknown>
+        const message = typeof payment.message === 'string' ? payment.message.toLowerCase() : ''
+        verificationStatus = message === 'successful' ? 'success' : 'pending'
+      } catch (error) {
+        console.error('MonCash payment verification failed:', error)
+        verificationStatus = 'verification_error'
+      }
+    }
 
     console.log('📨 MonCash payment notification received', {
-      payload,
+      orderId,
+      transactionId,
+      verificationStatus,
       timestamp: new Date().toISOString(),
     })
 
-    // TODO: Retrieve the payment from MonCash using transactionId or orderId.
-    // Never mark an order as paid from this request alone.
-    res.status(200).json({
+    if (req.method === 'GET') {
+      const redirectUrl = new URL(config.MONCASH_ALERT_URL)
+      redirectUrl.searchParams.set('status', verificationStatus)
+      if (orderId) redirectUrl.searchParams.set('orderId', orderId)
+      if (transactionId) redirectUrl.searchParams.set('transactionId', transactionId)
+      res.redirect(303, redirectUrl.toString())
+      return
+    }
+
+    res.status(verificationStatus === 'verification_error' ? 502 : 200).json({
       received: true,
       provider: 'moncash',
+      status: verificationStatus,
+      orderId,
+      transactionId,
+      payment,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
