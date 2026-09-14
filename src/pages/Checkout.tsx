@@ -3,14 +3,24 @@ import { useCart } from '@/contexts/CartContext'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button, Card } from '@/components'
 import { ordersService } from '@/services/ordersService'
+import { moncashService } from '@/services/moncashService'
 import { useState } from 'react'
+
+type PaymentMethod = 'paypal' | 'moncash' | 'natcash'
+
+const paymentMethods: Array<{ id: PaymentMethod; name: string; desc: string }> = [
+  { id: 'moncash', name: 'MonCash', desc: 'Paiement sécurisé via MonCash' },
+  { id: 'natcash', name: 'NatCash', desc: 'Paiement manuel via NatCash' },
+  { id: 'paypal', name: 'PayPal', desc: 'Disponible bientôt' },
+]
 
 function Checkout() {
   const navigate = useNavigate()
   const { cartItems, clearCart } = useCart()
   const { currency } = useAppContext()
-  const [selectedPayment, setSelectedPayment] = useState<'paypal' | 'moncash' | 'natcash'>('moncash')
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('moncash')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   if (cartItems.length === 0) {
     return (
@@ -30,6 +40,8 @@ function Checkout() {
 
   const handlePlaceOrder = async () => {
     setLoading(true)
+    setError('')
+
     try {
       const order = await ordersService.createOrder({
         product: item.product,
@@ -42,10 +54,19 @@ function Checkout() {
         paymentMethod: selectedPayment,
         totalPrice: price,
       })
+
+      if (selectedPayment === 'moncash') {
+        const payment = await moncashService.createPayment(order.orderNumber, price)
+        clearCart()
+        window.location.assign(payment.redirectUrl)
+        return
+      }
+
       clearCart()
-      navigate(``/order-confirmation/``{order.orderNumber}``)
-    } catch (error) {
-      console.error('Order creation failed:', error)
+      navigate('/order-confirmation/' + order.orderNumber)
+    } catch (requestError) {
+      console.error('Order creation or payment failed:', requestError)
+      setError('Le paiement n’a pas pu être démarré. Vérifiez votre connexion puis réessayez.')
     } finally {
       setLoading(false)
     }
@@ -56,7 +77,6 @@ function Checkout() {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">Paiement</h1>
 
-        {/* Order Summary */}
         <Card className="mb-8">
           <h2 className="text-xl font-bold text-white mb-6">Résumé de la commande</h2>
           <div className="space-y-4">
@@ -81,29 +101,23 @@ function Checkout() {
           </div>
         </Card>
 
-        {/* Payment Methods */}
         <Card>
           <h2 className="text-xl font-bold text-white mb-6">Méthode de paiement</h2>
           <div className="space-y-3">
-            {[
-              { id: 'moncash', name: 'MonCash', desc: 'Paiement manuel via MonCash' },
-              { id: 'natcash', name: 'NatCash', desc: 'Paiement manuel via NatCash' },
-              { id: 'paypal', name: 'PayPal', desc: 'Disponible bientôt' },
-            ].map((method) => (
+            {paymentMethods.map((method) => (
               <label
                 key={method.id}
-                className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  selectedPayment === method.id as any
+                className={'flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ' +
+                  (selectedPayment === method.id
                     ? 'border-amical-orange bg-amical-dark-secondary'
-                    : 'border-amical-dark-tertiary hover:border-amical-orange/50'
-                }`}
+                    : 'border-amical-dark-tertiary hover:border-amical-orange/50')}
               >
                 <input
                   type="radio"
                   name="payment"
                   value={method.id}
-                  checked={selectedPayment === method.id as any}
-                  onChange={(e) => setSelectedPayment(e.target.value as any)}
+                  checked={selectedPayment === method.id}
+                  onChange={(event) => setSelectedPayment(event.target.value as PaymentMethod)}
                   className="mr-3"
                   disabled={method.id === 'paypal'}
                 />
@@ -115,13 +129,19 @@ function Checkout() {
             ))}
           </div>
 
+          {error && (
+            <p className="mt-4 rounded-lg bg-red-900/40 p-3 text-sm text-red-200" role="alert">
+              {error}
+            </p>
+          )}
+
           <Button
             className="w-full mt-8"
             size="lg"
             onClick={handlePlaceOrder}
             isLoading={loading}
           >
-            Confirmer la commande
+            {selectedPayment === 'moncash' ? 'Payer avec MonCash' : 'Confirmer la commande'}
           </Button>
         </Card>
       </div>
