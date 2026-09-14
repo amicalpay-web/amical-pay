@@ -7,7 +7,7 @@ import {
   Home,
   LifeBuoy,
   LogOut,
-  ReceiptText,
+  Receipt,
   Settings2,
   ShoppingBag,
   Tag,
@@ -67,7 +67,7 @@ export function MobileMenu({
     { to: '/account', label: labels.profile, icon: UserRound },
     { to: '/track-order', label: labels.orders, icon: ShoppingBag },
     { to: '/account#balance', label: labels.balance, icon: WalletCards },
-    { to: '/track-order#transactions', label: labels.transactions, icon: ReceiptText },
+    { to: '/track-order#transactions', label: labels.transactions, icon: Receipt },
     { to: '/account#settings', label: labels.settings, icon: Settings2 },
   ]
 
