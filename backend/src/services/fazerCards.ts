@@ -14,10 +14,8 @@ import {
   FazerOrderResponse,
   FazerOrderStatusResponse,
   FazerBalanceResponse,
-  FazerErrorResponse,
   FazerApiError,
   FazerConnectionTestResult,
-  FazerConnectionStatus,
 } from '../types/fazer.js'
 
 // FazerCards API Configuration
@@ -66,7 +64,7 @@ async function fazerRequest<T>(
 
     clearTimeout(timeoutId)
 
-    const data = await response.json()
+    const data = (await response.json()) as any
 
     // Handle API errors
     if (!response.ok) {
