@@ -15,6 +15,8 @@ projects:
             plan: free
             region: oregon
             rootDir: backend
+            domains:
+              - api.amicalpay.com
             buildCommand: npm install && npm run build
             startCommand: npm start
             healthCheckPath: /healthz
@@ -29,11 +31,11 @@ projects:
               - key: ADMIN_TOKEN
                 generateValue: true
               - key: FRONTEND_URL
-                value: https://amical-pay-frontend.onrender.com
+                value: https://amicalpay.com
               - key: MONCASH_RETURN_URL
-                value: https://amical-pay-api.onrender.com/api/webhook/moncash
+                value: https://api.amicalpay.com/api/webhook/moncash
               - key: MONCASH_ALERT_URL
-                value: https://amical-pay-frontend.onrender.com/payment-success
+                value: https://amicalpay.com/payment-success
 
           # Frontend application
           - type: web
@@ -43,10 +45,13 @@ projects:
             plan: free
             region: oregon
             rootDir: .
+            domains:
+              - amicalpay.com
+              - www.amicalpay.com
             buildCommand: npm install && npm run build
             startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
             healthCheckPath: /
             autoDeployTrigger: commit
             envVars:
               - key: VITE_API_URL
-                value: https://amical-pay-api.onrender.com
+                value: https://api.amicalpay.com
