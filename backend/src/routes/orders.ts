@@ -3,8 +3,9 @@ import * as fazer from '../services/fazerCards.js'
 
 const router = Router()
 
-// Mock orders storage (in-memory)
-const mockOrders: Record<string, any> = {}
+// Temporary persistence retained to avoid changing the existing storage layer.
+// Render restarts still require the project's real database/storage integration.
+export const mockOrders: Record<string, any> = {}
 
 function generateOrderNumber(): string {
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '')
@@ -14,8 +15,32 @@ function generateOrderNumber(): string {
   return `ORD-${date}-${random}`
 }
 
+async function validateIfRequired(
+  categoryId: string,
+  fields: Record<string, unknown>
+): Promise<{ required: boolean; playerName?: string | null; region?: string | null }> {
+  if (Object.keys(fields).length === 0) return { required: false }
+
+  // This lookup is deliberately made only on the purchase path. Catalogue
+  // loading never depends on getPlayerValidationCatalog().
+  const validationCategory = (await fazer.getPlayerValidationCatalog())
+    .find((category) => category.category_id === categoryId)
+
+  if (!validationCategory || validationCategory.fields.length === 0) {
+    return { required: false }
+  }
+
+  const validation = await fazer.validatePlayer(categoryId, fields)
+  return {
+    required: true,
+    playerName: validation.player_name,
+    region: validation.region,
+  }
+}
+
 // POST /api/orders
-// Create a new order
+// Creates the local order after validation, but does not execute the supplier
+// order until MonCash confirms payment.
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const {
@@ -32,11 +57,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       fazer_fields,
     } = req.body
 
-    // Validate required fields
     if (
       !product_id ||
-      typeof player_id !== 'string' ||
-      !player_id.trim() ||
       !email ||
       typeof fazer_category_id !== 'string' ||
       !fazer_category_id.trim() ||
@@ -50,7 +72,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         error: 'Missing required fields',
         required: [
           'product_id',
-          'player_id',
           'email',
           'fazer_category_id',
           'fazer_offer_id',
@@ -60,22 +81,15 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       return
     }
 
-    // Never trust a frontend validation flag. Revalidate on the server before
-    // accepting the local order.
-    const validation = await fazer.validatePlayer(
-      fazer_category_id.trim(),
-      fazer_fields as Record<string, unknown>
-    )
-
+    const fields = fazer_fields as Record<string, unknown>
+    const validation = await validateIfRequired(fazer_category_id.trim(), fields)
     const parsedTotalPrice = Number(total_price)
-
-    // Create order
     const orderNumber = generateOrderNumber()
     const order = {
       id: Math.random().toString(36).substr(2, 9),
       order_number: orderNumber,
       product_id,
-      player_id,
+      player_id: typeof player_id === 'string' ? player_id : '',
       whatsapp_number,
       email,
       region,
@@ -84,47 +98,65 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       payment_method: payment_method || null,
       fazer_category_id: fazer_category_id.trim(),
       fazer_offer_id: fazer_offer_id.trim(),
-      fazer_fields,
-      fazer_player_name: validation.player_name,
-      fazer_player_region: validation.region,
-      fazer_validation_status: 'confirmed',
+      fazer_fields: fields,
+      fazer_player_name: validation.playerName || null,
+      fazer_player_region: validation.region || null,
+      fazer_validation_status: validation.required ? 'confirmed' : 'not_required',
+      fazer_order_id: null,
+      fazer_order_status: 'not_created',
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
 
-    // Store in mock database
     mockOrders[orderNumber] = order
-
     res.status(201).json(order)
   } catch (error) {
     next(error)
   }
 })
 
-// GET /api/orders/player/:playerId
-// List orders for a player
+// Execute the supplier order once a payment is verified. This is exported for
+// the MonCash webhook and remains idempotent for repeated callbacks.
+export async function fulfillFazerOrder(orderNumber: string): Promise<any> {
+  const order = mockOrders[orderNumber]
+  if (!order) throw new Error(`Order not found: ${orderNumber}`)
+  if (order.fazer_order_id) return order
+
+  const fazerOrder = await fazer.createOrder(
+    order.fazer_category_id,
+    order.fazer_offer_id,
+    order.fazer_fields,
+    `amicalpay-${order.order_number}`,
+    order.fazer_validation_status === 'confirmed'
+      ? Object.keys(order.fazer_fields).map((key) => ({ key }))
+      : [],
+  )
+
+  order.fazer_order_id = fazerOrder.order_id
+  order.fazer_order_status = fazerOrder.order_status
+  order.status = 'processing'
+  order.updated_at = new Date().toISOString()
+  return order
+}
+
 router.get('/player/:playerId', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { playerId } = req.params
-    const orders = Object.values(mockOrders).filter((order) => order.player_id === playerId)
+    const orders = Object.values(mockOrders)
+      .filter((order) => order.player_id === req.params.playerId)
     res.json(orders)
   } catch (error) {
     next(error)
   }
 })
 
-// GET /api/orders/:orderNumber
-// Track order status
 router.get('/:orderNumber', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { orderNumber } = req.params
-    const order = mockOrders[orderNumber]
-
+    const order = mockOrders[req.params.orderNumber]
     if (!order) {
       res.status(404).json({
         error: 'Order not found',
-        order_number: orderNumber,
+        order_number: req.params.orderNumber,
       })
       return
     }
