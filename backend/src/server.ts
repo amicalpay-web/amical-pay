@@ -30,14 +30,14 @@ export function createServer(): Express {
   app.use(express.urlencoded({ extended: true }))
 
   // Middleware: Logging
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] ${req.method} ${req.path}`)
     next()
   })
 
   // Routes: Health Check
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/health', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -46,7 +46,7 @@ export function createServer(): Express {
   })
 
   // Routes: Render Health Check (compatible with Render health check path)
-  app.get('/healthz', (req: Request, res: Response) => {
+  app.get('/healthz', (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
