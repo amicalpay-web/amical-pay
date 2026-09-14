@@ -53,6 +53,7 @@ function Checkout() {
         status: 'pending',
         paymentMethod: selectedPayment,
         totalPrice: price,
+        fazerFields: item.fazerFields,
       })
 
       if (selectedPayment === 'moncash') {
