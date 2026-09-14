@@ -4,6 +4,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express'
 import * as fazer from '../services/fazerCards.js'
+import { FazerOffer } from '../types/fazer.js'
 
 const router = Router()
 
@@ -36,7 +37,7 @@ const mockProducts: Record<string, any[]> = {
   ],
 }
 
-function normalizeOffer(offer: fazer.FazerOffer, region: string, index: number) {
+function normalizeOffer(offer: FazerOffer, region: string, index: number) {
   return {
     id: region.toLowerCase() + '-ff-' + offer.offer_id,
     name: offer.offer_name,
