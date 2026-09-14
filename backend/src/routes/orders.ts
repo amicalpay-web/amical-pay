@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express'
+import * as fazer from '../services/fazerCards.js'
 
 const router = Router()
 
@@ -26,25 +27,45 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       currency,
       total_price,
       payment_method,
+      fazer_category_id,
+      fazer_offer_id,
+      fazer_fields,
     } = req.body
 
     // Validate required fields
-    if (!product_id || !player_id || !email) {
+    if (
+      !product_id ||
+      typeof player_id !== 'string' ||
+      !player_id.trim() ||
+      !email ||
+      typeof fazer_category_id !== 'string' ||
+      !fazer_category_id.trim() ||
+      typeof fazer_offer_id !== 'string' ||
+      !fazer_offer_id.trim() ||
+      !fazer_fields ||
+      typeof fazer_fields !== 'object' ||
+      Array.isArray(fazer_fields)
+    ) {
       res.status(400).json({
         error: 'Missing required fields',
-        required: ['product_id', 'player_id', 'email'],
+        required: [
+          'product_id',
+          'player_id',
+          'email',
+          'fazer_category_id',
+          'fazer_offer_id',
+          'fazer_fields',
+        ],
       })
       return
     }
 
-    // Validate player ID (must be numeric)
-    if (!/^\d+$/.test(player_id)) {
-      res.status(400).json({
-        error: 'Invalid player ID format',
-        details: 'Player ID must contain only numbers',
-      })
-      return
-    }
+    // Never trust a frontend validation flag. Revalidate on the server before
+    // accepting the local order.
+    const validation = await fazer.validatePlayer(
+      fazer_category_id.trim(),
+      fazer_fields as Record<string, unknown>
+    )
 
     const parsedTotalPrice = Number(total_price)
 
@@ -61,6 +82,12 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       currency,
       total_price: Number.isFinite(parsedTotalPrice) ? parsedTotalPrice : null,
       payment_method: payment_method || null,
+      fazer_category_id: fazer_category_id.trim(),
+      fazer_offer_id: fazer_offer_id.trim(),
+      fazer_fields,
+      fazer_player_name: validation.player_name,
+      fazer_player_region: validation.region,
+      fazer_validation_status: 'confirmed',
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
