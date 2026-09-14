@@ -1,9 +1,6 @@
-import { useTranslation } from 'react-i18next'
-import { Card, Button } from '@/components'
+import { Card } from '@/components'
 
 function Support() {
-  const { t } = useTranslation()
-
   return (
     <div className="min-h-screen bg-amical-dark py-12 px-4">
       <div className="max-w-2xl mx-auto">
