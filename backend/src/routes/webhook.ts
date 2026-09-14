@@ -30,4 +30,32 @@ router.post('/fazer', async (req: Request, res: Response, next: NextFunction) =>
   }
 })
 
+// MonCash return URL.
+// MonCash may redirect here with transactionId/orderId query parameters.
+// Payment verification must happen server-to-server before an order is marked paid.
+const handleMonCashReturn = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const payload = req.method === 'GET' ? req.query : req.body
+
+    console.log('📨 MonCash payment notification received', {
+      payload,
+      timestamp: new Date().toISOString(),
+    })
+
+    // TODO: Retrieve the payment from MonCash using transactionId or orderId.
+    // Never mark an order as paid from this request alone.
+    res.status(200).json({
+      received: true,
+      provider: 'moncash',
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// GET and POST are supported for MonCash return/callback compatibility.
+router.get('/moncash', handleMonCashReturn)
+router.post('/moncash', handleMonCashReturn)
+
 export default router
