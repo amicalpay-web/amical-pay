@@ -17,7 +17,7 @@ const router = Router()
  * Test FazerCards API connection
  * Returns: Connection status without exposing API key
  */
-router.get('/health', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await fazer.testConnection()
 
@@ -40,7 +40,7 @@ router.get('/health', async (req: Request, res: Response, next: NextFunction) =>
  */
 router.get(
   '/categories',
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const categories = await fazer.getCategories()
 
@@ -161,7 +161,7 @@ router.post(
 router.get(
   '/balance',
   authMiddleware,
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (_req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const balance = await fazer.getBalance()
 
