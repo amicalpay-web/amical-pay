@@ -39,7 +39,7 @@ export const config = {
 
   // FazerCards (REQUIRED for production)
   FAZER_API_KEY: getEnv('FAZER_API_KEY'),
-  FAZER_API_BASE_URL: getEnv('FAZER_API_BASE_URL', 'https://api.fazercards.com'),
+  FAZER_API_BASE_URL: getEnv('FAZER_API_BASE_URL', 'https://api.fzr.cards/api/v2'),
 
   // MonCash REST API
   MONCASH_MODE: getEnv('MONCASH_MODE', 'sandbox'),

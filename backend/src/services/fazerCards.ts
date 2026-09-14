@@ -7,19 +7,19 @@
 import { config } from '../config/env.js'
 import {
   FazerCategory,
-  FazerCategoriesResponse,
   FazerOffer,
-  FazerOffersResponse,
   FazerOrderRequest,
   FazerOrderResponse,
   FazerOrderStatusResponse,
   FazerBalanceResponse,
   FazerApiError,
   FazerConnectionTestResult,
+  FazerTopupCatalogPage,
+  FazerTopupOffersResponse,
 } from '../types/fazer.js'
 
 // FazerCards API Configuration
-const FAZER_API_BASE = 'https://api.fzr.cards/api/v2'
+const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\/+$/, '')
 const FAZER_API_KEY = config.FAZER_API_KEY
 const REQUEST_TIMEOUT = 30000 // 30 seconds
 
@@ -32,7 +32,7 @@ function createHeaders(): Record<string, string> {
   }
 
   return {
-    'Authorization': `Bearer ${FAZER_API_KEY}`,
+    'X-API-Key': FAZER_API_KEY,
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   }
@@ -103,50 +103,63 @@ async function fazerRequest<T>(
 }
 
 /**
- * Get all available categories (Free Fire Latam, EU, etc)
+ * Get all purchasable top-up categories from FazerCards.
+ * The API is cursor-paginated; collect every page before resolving a region.
  */
 export async function getCategories(): Promise<FazerCategory[]> {
-  try {
-    console.log('📡 Fetching FazerCards categories...')
-    const response = await fazerRequest<FazerCategoriesResponse>(
+  const categories: FazerCategory[] = []
+  let cursor: string | undefined
+
+  do {
+    const query = new URLSearchParams({ limit: '100' })
+    if (cursor) query.set('cursor', cursor)
+
+    const response = await fazerRequest<FazerTopupCatalogPage>(
       'GET',
-      '/topups/categories'
+      `/topups?${query.toString()}`
     )
 
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
+    categories.push(...response.items.map((item) => ({
+      category_id: item.category_id,
+      category_name: item.name,
+      name: item.name,
+      description: item.note,
+      image_url: item.imageurl ?? undefined,
+    })))
 
-    console.log(`✅ Fetched ${response.categories.length} categories`)
-    return response.categories
-  } catch (error) {
-    console.error('❌ Error fetching categories:', error)
-    throw error
-  }
+    cursor = response.meta?.has_more ? response.meta.next_cursor : undefined
+  } while (cursor)
+
+  console.log(`✅ Fetched ${categories.length} FazerCards top-up categories`)
+  return categories
 }
 
 /**
- * Get all offers/packages for a category
- * Example: Free Fire Latam diamonds packages (500, 1000, etc)
+ * Get all offers/packages for a purchasable top-up category.
+ * FazerCards returns price_usd and name; the legacy shape is kept for callers.
  */
 export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
-  try {
-    console.log(`📡 Fetching offers for category: ${categoryId}...`)
-    const response = await fazerRequest<FazerOffersResponse>(
-      'GET',
-      `/topups/offers?category_id=${encodeURIComponent(categoryId)}`
-    )
+  const response = await fazerRequest<FazerTopupOffersResponse>(
+    'GET',
+    `/topups/offers?category_id=${encodeURIComponent(categoryId)}`
+  )
 
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
+  return response.offers.map((offer) => ({
+    offer_id: offer.offer_id,
+    offer_name: offer.name,
+    amount: extractNumericAmount(offer.name),
+    price: Number(offer.price_usd),
+    price_currency: 'USD',
+    price_usd: offer.price_usd,
+    stock: offer.stock,
+    description: response.name,
+    is_popular: false,
+  }))
+}
 
-    console.log(`✅ Fetched ${response.offers.length} offers for ${categoryId}`)
-    return response.offers
-  } catch (error) {
-    console.error(`❌ Error fetching offers for ${categoryId}:`, error)
-    throw error
-  }
+function extractNumericAmount(value: string): number | undefined {
+  const match = value.match(/[0-9][0-9,]*/)
+  return match ? Number(match[0].replace(/,/g, '')) : undefined
 }
 
 /**

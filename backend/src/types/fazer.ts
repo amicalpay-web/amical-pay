@@ -1,7 +1,7 @@
 /**
  * FazerCards API Types
- * Based on official FazerCards API documentation
- * https://api.fzr.cards/public/docs
+ * Based on the official FazerCards reseller API contract.
+ * https://reseller.fazercards.com/en/docs
  */
 
 // ============ CATEGORIES ============
@@ -9,13 +9,53 @@
 export interface FazerCategory {
   category_id: string
   category_name: string
+  name?: string
   description?: string
   image_url?: string
 }
 
 export interface FazerCategoriesResponse {
-  status: string
-  categories: FazerCategory[]
+  status?: string
+  categories?: FazerCategory[]
+  items?: FazerCategory[]
+}
+
+// ============ CURRENT TOP-UP API SHAPES ============
+
+export interface FazerTopupCategory {
+  category_id: string
+  name: string
+  note?: string
+  imageurl?: string | null
+}
+
+export interface FazerCatalogMeta {
+  total: number
+  limit: number
+  next_cursor?: string
+  has_more: boolean
+}
+
+export interface FazerTopupCatalogPage {
+  kind?: string
+  items: FazerTopupCategory[]
+  meta?: FazerCatalogMeta
+}
+
+export interface FazerTopupOffer {
+  offer_id: string
+  name: string
+  price_usd: string | number
+  stock?: number
+}
+
+export interface FazerTopupOffersResponse {
+  kind?: string
+  category_id: string
+  name: string
+  offers: FazerTopupOffer[]
+  fields?: Array<{ key: string; label: string; type: string; options?: Array<Record<string, unknown>> }>
+  note?: string
 }
 
 // ============ OFFERS / PACKAGES ============
@@ -23,10 +63,12 @@ export interface FazerCategoriesResponse {
 export interface FazerOffer {
   offer_id: string
   offer_name: string
-  amount: number // Diamonds/currency amount
-  amount_currency?: string // USD, HTG, etc
-  price: number // Reseller price in USD
-  price_currency: string // USD
+  amount?: number
+  amount_currency?: string
+  price: number
+  price_currency: string
+  price_usd?: string | number
+  stock?: number
   provider?: string
   description?: string
   image_url?: string
@@ -34,7 +76,7 @@ export interface FazerOffer {
 }
 
 export interface FazerOffersResponse {
-  status: string
+  status?: string
   category_id: string
   offers: FazerOffer[]
 }
@@ -75,10 +117,10 @@ export interface FazerOrderStatusResponse {
 // ============ BALANCE ============
 
 export interface FazerBalanceResponse {
-  status: string
+  status?: string
   balance: number
   currency: string
-  last_updated: string
+  last_updated?: string
 }
 
 // ============ API ERRORS ============
