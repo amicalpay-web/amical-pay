@@ -17,7 +17,16 @@ function generateOrderNumber(): string {
 // Create a new order
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { product_id, player_id, whatsapp_number, email, region, currency } = req.body
+    const {
+      product_id,
+      player_id,
+      whatsapp_number,
+      email,
+      region,
+      currency,
+      total_price,
+      payment_method,
+    } = req.body
 
     // Validate required fields
     if (!product_id || !player_id || !email) {
@@ -37,8 +46,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       return
     }
 
-    // TODO: Validate with FazerCards API
-    // const isValid = await validateWithFazerCards(player_id, region)
+    const parsedTotalPrice = Number(total_price)
 
     // Create order
     const orderNumber = generateOrderNumber()
@@ -51,6 +59,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       email,
       region,
       currency,
+      total_price: Number.isFinite(parsedTotalPrice) ? parsedTotalPrice : null,
+      payment_method: payment_method || null,
       status: 'pending',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -60,6 +70,18 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     mockOrders[orderNumber] = order
 
     res.status(201).json(order)
+  } catch (error) {
+    next(error)
+  }
+})
+
+// GET /api/orders/player/:playerId
+// List orders for a player
+router.get('/player/:playerId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { playerId } = req.params
+    const orders = Object.values(mockOrders).filter((order) => order.player_id === playerId)
+    res.json(orders)
   } catch (error) {
     next(error)
   }
