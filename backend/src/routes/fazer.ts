@@ -7,6 +7,7 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import * as fazer from '../services/fazerCards.js'
 import { AuthRequest, authMiddleware } from '../middleware/auth.js'
+import { getFullCatalog } from '../services/fazerCatalog.js'
 
 const router = Router()
 
@@ -114,7 +115,7 @@ router.get(
   '/catalog',
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      const snapshot = await fazer.getCatalog()
+      const snapshot = await getFullCatalog()
       res.setHeader('Cache-Control', 'private, max-age=300')
       res.json({ status: 'success', source: 'fazer', ...snapshot })
     } catch (error) {
