@@ -32,6 +32,16 @@ projects:
                 generateValue: true
               - key: FRONTEND_URL
                 value: https://amicalpay.com
+              - key: MONCASH_MODE
+                value: sandbox
+              - key: MONCASH_CLIENT_ID
+                sync: false
+              - key: MONCASH_CLIENT_SECRET
+                sync: false
+              - key: MONCASH_API_BASE_URL
+                value: https://sandbox.moncashbutton.digicelgroup.com/Api
+              - key: MONCASH_GATEWAY_BASE_URL
+                value: https://sandbox.moncashbutton.digicelgroup.com/Moncash-middleware
               - key: MONCASH_RETURN_URL
                 value: https://api.amicalpay.com/api/webhook/moncash
               - key: MONCASH_ALERT_URL
