@@ -1,5 +1,5 @@
 import { Product, Region } from '@/types'
-import { allProducts, getProductsByRegion as getMockProductsByRegion, getProductById as getMockProductById } from '@/data/products'
+import { getProductsByRegion as getMockProductsByRegion, getProductById as getMockProductById } from '@/data/products'
 
 interface ProductsResponse {
   products?: Product[]
