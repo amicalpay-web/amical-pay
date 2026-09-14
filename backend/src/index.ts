@@ -1,8 +1,8 @@
 import 'dotenv/config.js'
 import { createServer } from './server.js'
-import { getEnv, validateConfig } from './config/env.js'
+import { getEnv, getPort, validateConfig } from './config/env.js'
 
-const PORT = getEnv('PORT')
+const PORT = getPort()
 
 // Validate environment on startup
 try {
@@ -13,9 +13,9 @@ try {
   process.exit(1)
 }
 
-const server = createServer()
+const app = createServer()
 
-server.listen(PORT, '0.0.0.0', () => {
+const httpServer = app.listen(PORT, '0.0.0.0', () => {
   console.log(`
 🚀 AmicalPay API Server`)
   console.log(`📍 Listening on port ${PORT}`)
@@ -27,7 +27,7 @@ server.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('\n⚠️  SIGTERM received, shutting down gracefully...')
-  server.close(() => {
+  httpServer.close(() => {
     console.log('Server closed')
     process.exit(0)
   })
@@ -35,7 +35,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('\n⚠️  SIGINT received, shutting down gracefully...')
-  server.close(() => {
+  httpServer.close(() => {
     console.log('Server closed')
     process.exit(0)
   })
