@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  ArrowRightLeft,
+  BadgeDollarSign,
   CircleUserRound,
-  Flame,
-  HelpCircle,
+  ChevronRight,
+  ClipboardList,
+  CreditCard,
+  Gift,
   Home,
-  LifeBuoy,
+  KeyRound,
   LogOut,
-  Receipt,
+  Send,
   Settings2,
-  ShoppingBag,
-  Tag,
+  Ticket,
   UserRound,
   WalletCards,
   X,
@@ -55,21 +58,53 @@ export function MobileMenu({
 
   if (!mounted) return null
 
-  const mainItems = [
+  const overviewItems = [
     { to: '/', label: labels.home, icon: Home },
-    { to: '/products', label: labels.freeFire, icon: Flame },
-    { to: '/products?promotion=true', label: labels.promotions, icon: Tag },
-    { to: '/#how-it-works', label: labels.howItWorks, icon: HelpCircle },
-    { to: '/support', label: labels.support, icon: LifeBuoy },
+    { to: '/track-order', label: labels.orders, icon: ClipboardList },
+    { to: '/track-order#transactions', label: labels.transactions, icon: ArrowRightLeft },
+  ]
+
+  const catalogItems = [
+    { to: '/products?catalog=steam-top-up-cis', label: labels.steamTopUpCis, icon: CreditCard },
+    { to: '/products?catalog=steam-gift-games', label: labels.steamGiftGames, icon: Gift },
+    { to: '/products?catalog=telegram-stars', label: labels.telegramStars, icon: Send },
+    { to: '/products?catalog=game-keys', label: labels.gameKeys, icon: KeyRound },
+    { to: '/products?catalog=manual-services', label: labels.manualServices, icon: ClipboardList },
+    { to: '/products?catalog=gift-cards', label: labels.giftCards, icon: Ticket },
+    { to: '/products?catalog=service-top-up', label: labels.serviceTopUp, icon: BadgeDollarSign },
+  ]
+
+  const financeItems = [
+    { to: '/account#balance', label: labels.balance, icon: WalletCards },
   ]
 
   const accountItems = [
     { to: '/account', label: labels.profile, icon: UserRound },
-    { to: '/track-order', label: labels.orders, icon: ShoppingBag },
-    { to: '/account#balance', label: labels.balance, icon: WalletCards },
-    { to: '/track-order#transactions', label: labels.transactions, icon: Receipt },
     { to: '/account#settings', label: labels.settings, icon: Settings2 },
   ]
+
+  const renderSection = (
+    title: string,
+    items: Array<{ to: string; label: string; icon: typeof Home }>,
+  ) => (
+    <nav className="px-4 py-5" aria-label={title}>
+      <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">{title}</p>
+      <div className="space-y-2">
+        {items.map(({ to, label, icon: Icon }) => (
+          <Link
+            key={to}
+            to={to}
+            onClick={onClose}
+            className="group flex items-center gap-3 rounded-2xl border border-white/[0.08] px-4 py-3.5 text-[15px] font-medium text-gray-200 transition hover:border-amical-orange/40 hover:bg-white/[0.04] hover:text-white"
+          >
+            <Icon size={19} strokeWidth={1.8} className="text-gray-500 transition group-hover:text-amical-orange" />
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <ChevronRight size={18} className="text-gray-600 transition group-hover:translate-x-0.5 group-hover:text-amical-orange" />
+          </Link>
+        ))}
+      </div>
+    </nav>
+  )
 
   return (
     <div className="md:hidden">
@@ -112,26 +147,13 @@ export function MobileMenu({
           </div>
         )}
 
-        <nav className="px-4 py-6" aria-label={labels.mainMenu}>
-          <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-500">{labels.main}</p>
-          <div className="space-y-1">
-            {mainItems.map(({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                onClick={onClose}
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-gray-300 transition hover:bg-white/[0.07] hover:text-white"
-              >
-                <Icon size={18} className="text-amical-orange" />
-                {label}
-              </Link>
-            ))}
-          </div>
-        </nav>
-
+        {renderSection(labels.overview, overviewItems)}
         <div className="mx-4 border-t border-white/10" />
+        {renderSection(labels.catalog, catalogItems)}
+        <div className="mx-4 border-t border-white/10" />
+        {renderSection(labels.finance, financeItems)}
 
-        <nav className="px-4 py-6" aria-label={labels.accountMenu}>
+        <nav className="border-t border-white/10 px-4 py-6" aria-label={labels.accountMenu}>
           <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-500">{labels.accountSection}</p>
           {isAuthenticated ? (
             <div className="space-y-1">
