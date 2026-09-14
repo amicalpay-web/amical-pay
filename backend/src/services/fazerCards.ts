@@ -1,348 +1,329 @@
 /**
- * FazerCards API Service
- * Handles all communication with FazerCards API
- * All API calls are server-side only - FAZER_API_KEY is never exposed to frontend
+ * FazerCards API service.
+ * Secrets stay server-side in FAZER_API_KEY.
+ * Contract aligned with https://api.fzr.cards/public/docs/openapi.json
  */
 
 import { config } from '../config/env.js'
 import {
-  FazerCategory,
+  FazerApiError,
+  FazerApiOffer,
+  FazerBalanceResponse,
   FazerCategoriesResponse,
+  FazerCategory,
+  FazerConnectionTestResult,
+  FazerField,
   FazerOffer,
   FazerOffersResponse,
   FazerOrderRequest,
   FazerOrderResponse,
   FazerOrderStatusResponse,
-  FazerBalanceResponse,
-  FazerApiError,
-  FazerConnectionTestResult,
 } from '../types/fazer.js'
 
-// FazerCards API Configuration
 const FAZER_API_BASE = 'https://api.fzr.cards/api/v2'
 const FAZER_API_KEY = config.FAZER_API_KEY
-const REQUEST_TIMEOUT = 30000 // 30 seconds
+const REQUEST_TIMEOUT = 30000
 
-/**
- * Create headers for FazerCards API requests
- */
+type FazerErrorPayload = {
+  error?: string
+  message?: string
+  code?: string
+  id?: string
+}
+
+type FazerOrderPayload = {
+  id?: string
+  order_id?: string
+  public_id?: string
+  status?: string
+  order_status?: FazerOrderResponse['order_status']
+  amount?: number | string
+  amount_usd?: number | string
+  currency?: string
+  created_at?: string
+  completed_at?: string
+  message?: string
+}
+
 function createHeaders(): Record<string, string> {
   if (!FAZER_API_KEY) {
     throw new Error('FAZER_API_KEY is not configured')
   }
 
   return {
-    'Authorization': `Bearer ${FAZER_API_KEY}`,
+    Authorization: 'Bearer ' + FAZER_API_KEY,
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   }
 }
 
-/**
- * Make a request to FazerCards API with timeout and error handling
- */
-async function fazerRequest<T>(
-  method: 'GET' | 'POST',
-  path: string,
-  body?: any
-): Promise<T> {
+async function fazerRequest<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
   if (!FAZER_API_KEY) {
     throw new Error('FAZER_API_KEY environment variable is not set')
   }
 
-  const url = `${FAZER_API_BASE}${path}`
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(FAZER_API_BASE + path, {
       method,
       headers: createHeaders(),
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     })
 
-    clearTimeout(timeoutId)
+    const data = await response.json().catch(() => ({})) as FazerErrorPayload & T
 
-    const data = (await response.json()) as any
-
-    // Handle API errors
     if (!response.ok) {
-      const error: FazerApiError = new Error(
-        data?.message || `FazerCards API error: ${response.status}`
+      const error = new Error(
+        data.message || data.error || 'FazerCards API error: ' + response.status,
       ) as FazerApiError
       error.statusCode = response.status
-      error.fazerId = data?.id
-      error.fazerCode = data?.code
-      error.fazerMessage = data?.message
-
-      console.error('❌ FazerCards API Error:', {
-        status: response.status,
-        path,
-        message: data?.message,
-        code: data?.code,
-      })
-
+      error.fazerId = data.id
+      error.fazerCode = data.code
+      error.fazerMessage = data.message || data.error
       throw error
     }
 
     return data as T
   } catch (error) {
-    clearTimeout(timeoutId)
-
-    if (error instanceof TypeError && error.message.includes('abort')) {
-      const timeoutError: FazerApiError = new Error(
-        'FazerCards API request timeout after 30 seconds'
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = new Error(
+        'FazerCards API request timeout after ' + REQUEST_TIMEOUT + 'ms',
       ) as FazerApiError
       timeoutError.statusCode = 504
       throw timeoutError
     }
 
     throw error
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
-/**
- * Get all available categories (Free Fire Latam, EU, etc)
- */
 export async function getCategories(): Promise<FazerCategory[]> {
-  try {
-    console.log('📡 Fetching FazerCards categories...')
-    const response = await fazerRequest<FazerCategoriesResponse>(
-      'GET',
-      '/topups/categories'
-    )
+  const response = await fazerRequest<FazerCategoriesResponse>(
+    'GET',
+    '/topups?limit=100&include_ui=1',
+  )
 
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
-
-    console.log(`✅ Fetched ${response.categories.length} categories`)
-    return response.categories
-  } catch (error) {
-    console.error('❌ Error fetching categories:', error)
-    throw error
+  if (response.ok !== true || !Array.isArray(response.items)) {
+    throw new Error('FazerCards returned an invalid categories response')
   }
+
+  return response.items.map((item) => ({
+    category_id: item.category_id,
+    category_name: item.name,
+    description: item.note,
+    image_url: item.imageurl || undefined,
+  }))
 }
 
-/**
- * Get all offers/packages for a category
- * Example: Free Fire Latam diamonds packages (500, 1000, etc)
- */
+const regionAliases: Record<string, string[]> = {
+  LATAM: ['latam', 'latin america', 'latinamerica', 'south america'],
+  EU: ['europe', 'eu'],
+  BR: ['brazil', 'brasil', 'br'],
+  MENA: ['mena', 'middle east', 'north africa', 'arab'],
+}
+
+export async function getCategoryForRegion(region: string): Promise<FazerCategory> {
+  const categories = await getCategories()
+  const normalizedRegion = region.trim().toUpperCase()
+  const aliases = regionAliases[normalizedRegion] || [normalizedRegion.toLowerCase()]
+  const freeFireCategories = categories.filter((category) => {
+    const text = (category.category_name + ' ' + category.category_id).toLowerCase()
+    return text.includes('free fire') || text.includes('freefire')
+  })
+  const candidates = freeFireCategories.length > 0 ? freeFireCategories : categories
+  const match = candidates.find((category) => {
+    const text = (category.category_name + ' ' + category.category_id).toLowerCase()
+    return aliases.some((alias) => text.includes(alias))
+  })
+
+  if (match) return match
+  if (candidates.length === 1) return candidates[0]
+
+  throw new Error('No FazerCards category found for region ' + normalizedRegion)
+}
+
+function parseOfferAmount(name: string): number {
+  const match = name.match(/[0-9][0-9,\s.]*/)
+  if (!match) return 0
+  return Number(match[0].replace(/[,.\s]/g, '')) || 0
+}
+
 export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
-  try {
-    console.log(`📡 Fetching offers for category: ${categoryId}...`)
-    const response = await fazerRequest<FazerOffersResponse>(
-      'GET',
-      `/topups/offers?category_id=${encodeURIComponent(categoryId)}`
-    )
+  const response = await fazerRequest<FazerOffersResponse>(
+    'GET',
+    '/topups/offers?category_id=' + encodeURIComponent(categoryId) + '&include_ui=1',
+  )
 
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
+  if (response.ok !== true || !Array.isArray(response.offers)) {
+    throw new Error('FazerCards returned an invalid offers response')
+  }
 
-    console.log(`✅ Fetched ${response.offers.length} offers for ${categoryId}`)
-    return response.offers
-  } catch (error) {
-    console.error(`❌ Error fetching offers for ${categoryId}:`, error)
-    throw error
+  return response.offers
+    .filter((offer: FazerApiOffer) => Boolean(offer.offer_id))
+    .map((offer: FazerApiOffer, index: number) => ({
+      offer_id: offer.offer_id as string,
+      offer_name: offer.name,
+      amount: parseOfferAmount(offer.name),
+      amount_currency: 'diamonds',
+      price: Number.parseFloat(offer.price_usd),
+      price_currency: 'USD' as const,
+      description: offer.name,
+      is_popular: index < 2,
+    }))
+}
+
+function normalizeOrder(order: FazerOrderPayload): FazerOrderResponse {
+  const orderId = order.public_id || order.id || order.order_id || ''
+  const amount = Number(order.amount_usd ?? order.amount ?? 0)
+  return {
+    status: 'success',
+    order_id: orderId,
+    order_status: order.order_status || 'pending',
+    amount,
+    amount_currency: order.currency || 'USD',
+    created_at: order.created_at || new Date().toISOString(),
+    completed_at: order.completed_at,
+    message: order.message,
   }
 }
 
-/**
- * Create a top-up order for Free Fire Latam
- * This creates a real order - use with caution
- */
 export async function createOrder(
   categoryId: string,
   offerId: string,
-  playerId: string
+  playerId: string,
 ): Promise<FazerOrderResponse> {
-  try {
-    // Validate inputs
-    if (!categoryId || !offerId || !playerId) {
-      throw new Error('Missing required fields: categoryId, offerId, playerId')
-    }
-
-    if (!/^\d+$/.test(playerId)) {
-      throw new Error('Invalid player ID format - must be numeric')
-    }
-
-    console.log(`📡 Creating order for player ${playerId}...`)
-
-    const orderRequest: FazerOrderRequest = {
-      category_id: categoryId,
-      offer_id: offerId,
-      fields: {
-        player_id: playerId,
-      },
-    }
-
-    const response = await fazerRequest<FazerOrderResponse>(
-      'POST',
-      '/topups/order',
-      orderRequest
-    )
-
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
-
-    console.log(`✅ Order created: ${response.order_id}`)
-    return response
-  } catch (error) {
-    console.error('❌ Error creating order:', error)
-    throw error
+  if (!categoryId || !offerId || !playerId) {
+    throw new Error('Missing required fields: categoryId, offerId, playerId')
   }
+
+  if (!/^[0-9]+$/.test(playerId)) {
+    throw new Error('Invalid player ID format - must be numeric')
+  }
+
+  const request: FazerOrderRequest = {
+    category_id: categoryId,
+    offer_id: offerId,
+    fields: { player_id: playerId },
+  }
+  const response = await fazerRequest<{ ok: true; order: FazerOrderPayload }>(
+    'POST',
+    '/topups/order',
+    request,
+  )
+
+  if (response.ok !== true || !response.order) {
+    throw new Error('FazerCards returned an invalid order response')
+  }
+
+  return normalizeOrder(response.order)
 }
 
-/**
- * Get order status
- */
-export async function getOrderStatus(
-  orderId: string
-): Promise<FazerOrderStatusResponse> {
-  try {
-    console.log(`📡 Fetching order status: ${orderId}...`)
-    const response = await fazerRequest<FazerOrderStatusResponse>(
-      'GET',
-      `/orders/${encodeURIComponent(orderId)}`
-    )
+export async function getOrderStatus(orderId: string): Promise<FazerOrderStatusResponse> {
+  const response = await fazerRequest<{ ok: true; order: FazerOrderPayload }>(
+    'GET',
+    '/orders/' + encodeURIComponent(orderId),
+  )
 
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
-
-    console.log(`✅ Order status: ${response.order_status}`)
-    return response
-  } catch (error) {
-    console.error(`❌ Error fetching order status:`, error)
-    throw error
+  if (response.ok !== true || !response.order) {
+    throw new Error('FazerCards returned an invalid order status response')
   }
+
+  return normalizeOrder(response.order)
 }
 
-/**
- * Get account balance
- */
 export async function getBalance(): Promise<FazerBalanceResponse> {
-  try {
-    console.log('📡 Fetching account balance...')
-    const response = await fazerRequest<FazerBalanceResponse>(
-      'GET',
-      '/balance'
-    )
+  const response = await fazerRequest<{ ok: true; balance: string; currency: string }>(
+    'GET',
+    '/balance',
+  )
 
-    if (response.status !== 'success') {
-      throw new Error(`FazerCards API returned status: ${response.status}`)
-    }
+  if (response.ok !== true) {
+    throw new Error('FazerCards returned an invalid balance response')
+  }
 
-    console.log(`✅ Balance: ${response.balance} ${response.currency}`)
-    return response
-  } catch (error) {
-    console.error('❌ Error fetching balance:', error)
-    throw error
+  return {
+    status: 'success',
+    balance: Number.parseFloat(response.balance),
+    currency: response.currency,
+    last_updated: new Date().toISOString(),
   }
 }
 
-/**
- * Test connection to FazerCards API
- * Used for health checks and diagnostics
- * NEVER exposes the actual API key
- */
 export async function testConnection(): Promise<FazerConnectionTestResult> {
   const result: FazerConnectionTestResult = {
     status: 'SUCCESS',
     timestamp: new Date().toISOString(),
-    apiKeySet: !!FAZER_API_KEY,
+    apiKeySet: Boolean(FAZER_API_KEY),
   }
 
-  // Check if API key is configured
   if (!FAZER_API_KEY) {
     result.status = 'MISSING_API_KEY'
     result.error = 'FAZER_API_KEY environment variable is not set'
-    console.error('❌ FAZER_API_KEY is not configured')
     return result
   }
 
   try {
-    // Try to fetch categories to verify connection and authentication
     const categories = await getCategories()
     result.fazerApiReachable = true
     result.authenticationValid = true
     result.categoriesCount = categories.length
-    result.status = 'SUCCESS'
-
-    console.log(`✅ FazerCards connection test PASSED`)
+    return result
   } catch (error) {
-    const err = error as any
-
-    // Determine the type of error
-    if (err.statusCode === 401 || err.statusCode === 403) {
-      result.status = 'AUTHENTICATION_ERROR'
-      result.error = 'Authentication failed - API key may be invalid'
-      result.details = `HTTP ${err.statusCode}: ${err.fazerMessage || err.message}`
-    } else if (err.message?.includes('timeout')) {
-      result.status = 'TIMEOUT'
-      result.error = 'Request timed out'
-      result.details = 'FazerCards API is not responding within 30 seconds'
-    } else if (err instanceof SyntaxError) {
-      result.status = 'INVALID_RESPONSE'
-      result.error = 'Invalid API response'
-      result.details = 'FazerCards API returned invalid JSON'
-    } else if (err.statusCode) {
-      result.status = 'API_ERROR'
-      result.error = `HTTP ${err.statusCode}: ${err.fazerMessage || err.message}`
-      result.details = err.fazerCode ? `Code: ${err.fazerCode}` : undefined
-    } else {
-      result.status = 'API_ERROR'
-      result.error = err.message || 'Unknown error'
-      result.details = err.toString()
-    }
-
-    result.fazerApiReachable = err.statusCode ? true : false
-
-    console.error(`❌ FazerCards connection test FAILED: ${result.status}`, {
-      error: result.error,
-      details: result.details,
-    })
+    const err = error as FazerApiError
+    result.fazerApiReachable = Boolean(err.statusCode)
+    result.authenticationValid = err.statusCode !== 401 && err.statusCode !== 403
+    result.status = err.statusCode === 401 || err.statusCode === 403
+      ? 'AUTHENTICATION_ERROR'
+      : err.statusCode === 504
+        ? 'TIMEOUT'
+        : 'API_ERROR'
+    result.error = err.message || 'Unknown FazerCards error'
+    result.details = err.fazerMessage
+    return result
   }
-
-  return result
 }
 
-/**
- * Validate a Free Fire Player ID
- * This makes a test request to see if the player exists
- * Note: FazerCards may not have a dedicated validation endpoint,
- * so we might need to attempt a mock order or use their validation if available
- */
 export async function validatePlayerFreeFireLatam(
-  playerId: string
+  playerId: string,
 ): Promise<{ valid: boolean; playerName?: string; error?: string }> {
+  if (!playerId || !/^[0-9]+$/.test(playerId)) {
+    return { valid: false, error: 'Invalid Free Fire Player ID format - must be numeric' }
+  }
+
   try {
-    // Basic format validation
-    if (!playerId || !/^\d+$/.test(playerId)) {
-      return {
-        valid: false,
-        error: 'Invalid Free Fire Player ID format - must be numeric',
-      }
+    const response = await fazerRequest<{
+      ok: true
+      items: Array<{ category_id: string; name: string; fields: FazerField[] }>
+    }>('GET', '/topups/validate-id')
+    const game = response.items.find((item) => /free\s*fire/i.test(item.name))
+
+    if (!game) {
+      return { valid: false, error: 'Free Fire validation is not available in FazerCards' }
     }
 
-    // TODO: If FazerCards provides a validation endpoint, use it here
-    // For now, we'll return validation success for numeric IDs
-    // Real validation will happen when creating an order
-
-    console.log(`✅ Free Fire Player ID format validated: ${playerId}`)
+    const playerField = game.fields.find((field) => field.type === 'text') || game.fields[0]
+    const validation = await fazerRequest<{
+      ok: true
+      valid: boolean
+      player_name?: string | null
+    }>('POST', '/topups/validate-id', {
+      category_id: game.category_id,
+      fields: { [playerField.key]: playerId },
+    })
 
     return {
-      valid: true,
-      // Player name would be fetched from FazerCards if their API provides it
+      valid: validation.valid,
+      playerName: validation.player_name || undefined,
     }
   } catch (error) {
-    console.error('❌ Error validating player ID:', error)
     return {
       valid: false,
-      error: 'Failed to validate player ID',
+      error: error instanceof Error ? error.message : 'Failed to validate player ID',
     }
   }
 }
