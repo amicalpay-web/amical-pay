@@ -161,9 +161,9 @@ async function loadCursorItems(
 async function loadTopupFamily(): Promise<FazerCatalogFamily> {
   const family = createFamily('topup', '/topups')
   try {
-    const response = asRecord(await requestJson<unknown>('GET', '/topups?limit=100&include_ui=1'))
-    const categories = Array.isArray(response.items) ? response.items.filter(isRecord) : []
-    family.meta = asRecord(response.meta)
+    const result = await loadCursorItems('/topups')
+    const categories = result.items
+    family.meta = result.meta
     for (const category of categories) {
       const categoryId = String(category.category_id || '')
       const entry: FazerCatalogEntry = {
