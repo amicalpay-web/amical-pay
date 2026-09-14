@@ -14,9 +14,16 @@ import { UserMenu } from './UserMenu'
 
 export interface HeaderLabels {
   home: string
-  freeFire: string
-  promotions: string
-  howItWorks: string
+  overview: string
+  catalog: string
+  finance: string
+  steamTopUpCis: string
+  steamGiftGames: string
+  telegramStars: string
+  gameKeys: string
+  manualServices: string
+  giftCards: string
+  serviceTopUp: string
   support: string
   login: string
   signup: string
@@ -40,9 +47,16 @@ export interface HeaderLabels {
 const translations: Record<'fr' | 'en', HeaderLabels> = {
   fr: {
     home: 'Accueil',
-    freeFire: 'Free Fire',
-    promotions: 'Promotions',
-    howItWorks: 'Comment ça marche',
+    overview: 'Vue d’ensemble',
+    catalog: 'Catalogue',
+    finance: 'Finance',
+    steamTopUpCis: 'Recharge Steam (CIS)',
+    steamGiftGames: 'Jeux cadeaux Steam',
+    telegramStars: 'Étoiles Telegram',
+    gameKeys: 'Clés de jeu',
+    manualServices: 'Services manuels',
+    giftCards: 'Cartes cadeaux',
+    serviceTopUp: 'Recharge de services',
     support: 'Support',
     login: 'Connexion',
     signup: 'Créer un compte',
@@ -64,9 +78,16 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
   },
   en: {
     home: 'Home',
-    freeFire: 'Free Fire',
-    promotions: 'Promotions',
-    howItWorks: 'How it works',
+    overview: 'Overview',
+    catalog: 'Catalog',
+    finance: 'Finance',
+    steamTopUpCis: 'Steam Top-Up (CIS)',
+    steamGiftGames: 'Steam Gift Games',
+    telegramStars: 'Telegram Stars',
+    gameKeys: 'Game Keys',
+    manualServices: 'Manual Services',
+    giftCards: 'Gift Cards',
+    serviceTopUp: 'Service Top-Up',
     support: 'Support',
     login: 'Sign in',
     signup: 'Create account',
@@ -163,10 +184,8 @@ function Header() {
 
   const navItems = [
     { to: '/', label: labels.home, end: true },
-    { to: '/products', label: labels.freeFire },
-    { to: '/products?promotion=true', label: labels.promotions },
-    { to: '/#how-it-works', label: labels.howItWorks },
-    { to: '/support', label: labels.support },
+    { to: '/products', label: labels.catalog },
+    { to: '/account#balance', label: labels.finance },
   ]
 
   return (
