@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { OrderSummary } from '@/components/OrderSummary'
 import { ordersService } from '@/services/ordersService'
-import { Order, PaymentMethod, Product, Region, Currency } from '@/types'
+import { Order, Product, Region, Currency } from '@/types'
 
 interface PaymentState {
   product: Product
@@ -18,7 +18,6 @@ function PaymentPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const state = location.state as PaymentState | null
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('moncash')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -50,7 +49,7 @@ function PaymentPage() {
         currency: state.currency,
         totalPrice: state.currency === 'USD' ? state.product.sellingPriceUsd : state.product.sellingPriceHtg,
         status: 'pending',
-        paymentMethod,
+        paymentMethod: 'moncash',
       })
       navigate(`/order-status?order=${order.orderNumber}`)
     } catch (createError) {
@@ -64,25 +63,9 @@ function PaymentPage() {
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="rounded-xl border border-amical-gold/20 bg-amical-card p-6">
         <h1 className="mb-4 text-2xl font-bold">Payment</h1>
-        <p className="mb-4 text-sm text-gray-300">Choose your payment method to complete the order.</p>
-        <div className="space-y-3">
-          {(['moncash', 'natcash', 'paypal'] as PaymentMethod[]).map((method) => (
-            <label
-              key={method}
-              className={`flex cursor-pointer items-center rounded-lg border p-3 ${
-                paymentMethod === method ? 'border-amical-gold bg-amical-dark-soft' : 'border-amical-gold/20'
-              }`}
-            >
-              <input
-                type="radio"
-                value={method}
-                checked={paymentMethod === method}
-                onChange={() => setPaymentMethod(method)}
-                className="mr-2"
-              />
-              <span className="uppercase text-sm">{method}</span>
-            </label>
-          ))}
+        <p className="mb-4 text-sm text-gray-300">Payment instructions are shared after order creation.</p>
+        <div className="rounded-lg border border-amical-gold/20 bg-amical-dark-soft p-4 text-sm text-gray-200">
+          Current processing method: <span className="font-semibold text-amical-gold">MonCash</span>
         </div>
         {error && <p className="mt-4 rounded-md bg-red-900/20 p-3 text-sm text-red-300">{error}</p>}
         <Button className="mt-6 w-full" onClick={handlePlaceOrder} isLoading={submitting}>

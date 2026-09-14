@@ -38,7 +38,7 @@ export function ProductCard({ product, currency }: ProductCardProps) {
           <Button variant="secondary" onClick={() => navigate(`/products/${product.id}`)}>
             Details
           </Button>
-          <Button onClick={() => navigate(`/checkout?productId=${product.id}`)}>Add to cart</Button>
+          <Button onClick={() => navigate(`/checkout?productId=${product.id}`)}>Buy now</Button>
         </div>
       </div>
     </Card>

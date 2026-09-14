@@ -1,6 +1,6 @@
 import { api, ApiOrderResponse } from '@/config/api'
 import { allProducts } from '@/data/products'
-import { Order, OrderStatus, Product, Region } from '@/types'
+import { Order, Product, Region } from '@/types'
 
 const orderCache = new Map<string, Order>()
 
@@ -29,7 +29,10 @@ const toOrder = (apiOrder: ApiOrderResponse): Order => {
     email: apiOrder.email,
     region: apiOrder.region,
     currency: apiOrder.currency,
-    totalPrice: apiOrder.currency === 'USD' ? product.sellingPriceUsd : product.sellingPriceHtg,
+    totalPrice:
+      apiOrder.total_price ??
+      apiOrder.totalPrice ??
+      (apiOrder.currency === 'USD' ? product.sellingPriceUsd : product.sellingPriceHtg),
     status: apiOrder.status,
     paymentMethod: 'moncash',
     createdAt: new Date(apiOrder.created_at),
@@ -67,23 +70,5 @@ export const ordersService = {
       console.error('Failed to fetch order by number:', error)
       return undefined
     }
-  },
-
-  getOrdersByPlayerId: async (playerId: string): Promise<Order[]> => {
-    const orders = Array.from(orderCache.values())
-    return orders.filter((order) => order.playerId === playerId)
-  },
-
-  getAllOrders: async (): Promise<Order[]> => Array.from(orderCache.values()),
-
-  updateOrderStatus: async (orderNumber: string, status: OrderStatus): Promise<Order | undefined> => {
-    const existingOrder = orderCache.get(orderNumber)
-    if (!existingOrder) {
-      return undefined
-    }
-
-    const updatedOrder = { ...existingOrder, status }
-    orderCache.set(orderNumber, updatedOrder)
-    return updatedOrder
   },
 }

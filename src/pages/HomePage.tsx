@@ -10,7 +10,6 @@ function HomePage() {
   const { region, setRegion, currency } = useAppContext()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
   useEffect(() => {
     document.title = 'Amical Pay - Free Fire Diamonds'
@@ -19,15 +18,9 @@ function HomePage() {
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true)
-      setError('')
-      try {
-        const data = await productsService.getProductsByRegion(region)
-        setProducts(data)
-      } catch {
-        setError('Unable to load products right now.')
-      } finally {
-        setLoading(false)
-      }
+      const data = await productsService.getProductsByRegion(region)
+      setProducts(data)
+      setLoading(false)
     }
     loadProducts()
   }, [region])
@@ -56,9 +49,8 @@ function HomePage() {
       </section>
 
       {loading && <p className="text-gray-300">Loading products...</p>}
-      {error && <p className="rounded-lg border border-red-400/50 bg-red-900/20 p-4 text-red-200">{error}</p>}
 
-      {!loading && !error && (
+      {!loading && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} currency={currency} />

@@ -3,16 +3,17 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAppContext } from '@/contexts/AppContext'
 import { useCart } from '@/contexts/CartContext'
-import { Region } from '@/types'
+import { Language, Region } from '@/types'
 
 const regions: Region[] = ['LATAM', 'EU', 'BR', 'MENA']
+const languages: Language[] = ['en', 'ru', 'fr', 'es', 'pt', 'ar']
 
 export function Header() {
   const { region, setRegion, language, setLanguage } = useAppContext()
   const { cartItems } = useCart()
   const [menuOpen, setMenuOpen] = useState(false)
   const [isDark, setIsDark] = useState(true)
-  const cartCount = cartItems.length || 2
+  const cartCount = cartItems.length
 
   const toggleTheme = () => {
     const next = !isDark
@@ -37,18 +38,17 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <button
-            className={`rounded-md px-2 py-1 text-xs ${language === 'en' ? 'bg-amical-gold text-black' : 'text-gray-200'}`}
-            onClick={() => setLanguage('en')}
-          >
-            EN
-          </button>
-          <button
-            className={`rounded-md px-2 py-1 text-xs ${language === 'ru' ? 'bg-amical-gold text-black' : 'text-gray-200'}`}
-            onClick={() => setLanguage('ru')}
-          >
-            RU
-          </button>
+          {languages.map((languageOption) => (
+            <button
+              key={languageOption}
+              className={`rounded-md px-2 py-1 text-xs uppercase ${
+                language === languageOption ? 'bg-amical-gold text-black' : 'text-gray-200'
+              }`}
+              onClick={() => setLanguage(languageOption)}
+            >
+              {languageOption}
+            </button>
+          ))}
           <select
             className="rounded-md border border-amical-gold/40 bg-amical-card px-2 py-1 text-xs text-gray-100"
             value={region}
@@ -60,18 +60,32 @@ export function Header() {
               </option>
             ))}
           </select>
-          <button onClick={toggleTheme} className="rounded-md p-2 text-gray-200 hover:text-amical-gold">
+          <button
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            className="rounded-md p-2 text-gray-200 hover:text-amical-gold"
+          >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-          <div className="relative text-gray-100">
+          <button
+            type="button"
+            aria-label="Shopping cart preview"
+            className="relative cursor-default text-gray-100"
+            title="Cart indicator"
+          >
             <ShoppingCart size={18} />
             <span className="absolute -right-2 -top-2 rounded-full bg-amical-gold px-1.5 text-[10px] font-bold text-black">
               {cartCount}
             </span>
-          </div>
+          </button>
         </div>
 
-        <button className="md:hidden text-gray-100" onClick={() => setMenuOpen((open) => !open)}>
+        <button
+          className="md:hidden text-gray-100"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={menuOpen}
+        >
           <Menu size={20} />
         </button>
       </div>

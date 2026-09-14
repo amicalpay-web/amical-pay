@@ -13,7 +13,6 @@ async function request<T>(path: string, method: ApiMethod = 'GET', body?: unknow
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     mode: 'cors',
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },
@@ -59,13 +58,16 @@ export interface ApiOrderResponse {
   region: Region
   currency: 'USD' | 'HTG'
   status: OrderStatus
+  total_price?: number
+  totalPrice?: number
   created_at: string
   updated_at: string
 }
 
 export const api = {
   getProductsByRegion(region: Region) {
-    return request<ApiProductsResponse>(`/api/products?region=${region}`)
+    const encodedRegion = encodeURIComponent(region)
+    return request<ApiProductsResponse>(`/api/products?region=${encodedRegion}`)
   },
   getProductById(id: string) {
     return request<Product>(`/api/products/${id}`)

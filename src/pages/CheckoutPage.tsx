@@ -39,6 +39,14 @@ function CheckoutPage() {
 
   const playerIdError = useMemo(() => errors.playerId, [errors.playerId])
 
+  const handleRegionChange = async (nextRegion: Region) => {
+    if (!product) return
+    setRegion(nextRegion)
+    const regionalProducts = await productsService.getProductsByRegion(nextRegion)
+    const matchingProduct = regionalProducts.find((item) => item.id === product.id) || regionalProducts[0] || null
+    setProduct(matchingProduct)
+  }
+
   const handleContinue = () => {
     const nextErrors: Record<string, string> = {}
     if (!playerId.trim()) nextErrors.playerId = 'Player ID is required.'
@@ -54,7 +62,7 @@ function CheckoutPage() {
         playerId,
         email,
         whatsappNumber,
-        region,
+        region: product.region,
         currency,
       },
     })
@@ -96,7 +104,7 @@ function CheckoutPage() {
               <span className="mb-1 block text-gray-300">Region</span>
               <select
                 value={region}
-                onChange={(event) => setRegion(event.target.value as Region)}
+                onChange={(event) => handleRegionChange(event.target.value as Region)}
                 className="w-full rounded-lg border border-amical-gold/30 bg-amical-dark-soft px-3 py-2 text-white"
               >
                 {(['LATAM', 'EU', 'BR', 'MENA'] as Region[]).map((regionOption) => (
