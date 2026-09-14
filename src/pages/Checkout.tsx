@@ -85,10 +85,18 @@ function Checkout() {
               <span className="text-gray-400">Produit</span>
               <span className="text-white font-semibold">{item.product.name}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Player ID</span>
-              <span className="text-white font-semibold">{item.playerId}</span>
-            </div>
+            {item.playerId && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Player ID</span>
+                <span className="text-white font-semibold">{item.playerId}</span>
+              </div>
+            )}
+            {item.fazerFields && Object.entries(item.fazerFields).map(([key, value]) => (
+              <div className="flex justify-between gap-4" key={key}>
+                <span className="text-gray-400">{key}</span>
+                <span className="text-white font-semibold text-right">{value}</span>
+              </div>
+            ))}
             <div className="flex justify-between">
               <span className="text-gray-400">Région</span>
               <span className="text-white font-semibold">{item.product.region}</span>
