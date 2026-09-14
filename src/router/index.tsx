@@ -5,6 +5,7 @@ import ProductDetail from '@/pages/ProductDetail'
 import PlayerValidation from '@/pages/PlayerValidation'
 import Checkout from '@/pages/Checkout'
 import OrderConfirmation from '@/pages/OrderConfirmation'
+import PaymentSuccess from '@/pages/PaymentSuccess'
 import TrackOrder from '@/pages/TrackOrder'
 import Account from '@/pages/Account'
 import FAQ from '@/pages/FAQ'
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/player-validation" element={<PlayerValidation />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmation />} />
+      <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/track-order" element={<TrackOrder />} />
       <Route path="/account" element={<Account />} />
       <Route path="/faq" element={<FAQ />} />
