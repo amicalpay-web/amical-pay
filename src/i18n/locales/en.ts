@@ -18,7 +18,7 @@ export const en = {
     success: 'Success',
   },
   header: {
-    logo: 'AmicalPay',
+    logo: 'Amical Pay',
     home: 'Home',
     diamonds: 'Free Fire Diamonds',
     howItWorks: 'How it works',

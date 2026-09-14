@@ -102,7 +102,7 @@ function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h4 className="text-lg font-bold text-amical-orange mb-4">AmicalPay</h4>
+              <h4 className="text-lg font-bold text-amical-orange mb-4">Amical Pay</h4>
               <p className="text-gray-400 text-sm">Votre plateforme de confiance pour les Diamonds Free Fire</p>
             </div>
             <div>
@@ -120,7 +120,7 @@ function Home() {
             </div>
           </div>
           <div className="border-t border-amical-dark-secondary pt-8 text-center text-gray-500 text-sm">
-            <p>&copy; 2024 AmicalPay. {t('footer.rights')}</p>
+            <p>&copy; 2024 Amical Pay. {t('footer.rights')}</p>
           </div>
         </div>
       </footer>

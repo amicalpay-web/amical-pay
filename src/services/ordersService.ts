@@ -1,61 +1,74 @@
-import { Order } from '@/types';
-import { mockOrders, generateOrderNumber, getOrderByNumber, getOrdersByPlayerId } from '@/data/orders';
+import { api, ApiOrderResponse } from '@/config/api'
+import { allProducts } from '@/data/products'
+import { Order, Product, Region } from '@/types'
 
-// Mock orders service - can be replaced with real API calls later
+const orderCache = new Map<string, Order>()
+
+const fallbackProduct = (productId: string, region: Region): Product => ({
+  id: productId,
+  name: productId,
+  diamonds: 0,
+  region,
+  description: 'Free Fire diamonds order',
+  sellingPriceUsd: 0,
+  sellingPriceHtg: 0,
+  availability: 'in_stock',
+})
+
+const toOrder = (apiOrder: ApiOrderResponse): Order => {
+  const product =
+    allProducts.find((candidate) => candidate.id === apiOrder.product_id) ||
+    fallbackProduct(apiOrder.product_id, apiOrder.region)
+
+  const order: Order = {
+    id: apiOrder.id,
+    orderNumber: apiOrder.order_number,
+    product,
+    playerId: apiOrder.player_id,
+    whatsappNumber: apiOrder.whatsapp_number || '',
+    email: apiOrder.email,
+    region: apiOrder.region,
+    currency: apiOrder.currency,
+    totalPrice:
+      apiOrder.total_price ??
+      apiOrder.totalPrice ??
+      (apiOrder.currency === 'USD' ? product.sellingPriceUsd : product.sellingPriceHtg),
+    status: apiOrder.status,
+    paymentMethod: 'moncash',
+    createdAt: new Date(apiOrder.created_at),
+  }
+
+  orderCache.set(order.orderNumber, order)
+  return order
+}
+
 export const ordersService = {
-  // Create a new order (mock - just stores in memory)
-  createOrder: async (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Promise<Order> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newOrder: Order = {
-          ...orderData,
-          id: Math.random().toString(36).substr(2, 9),
-          orderNumber: generateOrderNumber(),
-          createdAt: new Date(),
-        };
-        mockOrders.push(newOrder);
-        resolve(newOrder);
-      }, 500);
-    });
+  createOrder: async (
+    orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'> & { createdAt?: Date }
+  ): Promise<Order> => {
+    const response = await api.createOrder({
+      product_id: orderData.product.id,
+      player_id: orderData.playerId,
+      whatsapp_number: orderData.whatsappNumber,
+      email: orderData.email,
+      region: orderData.region,
+      currency: orderData.currency,
+    })
+
+    return toOrder(response)
   },
 
-  // Get order by order number
   getOrderByNumber: async (orderNumber: string): Promise<Order | undefined> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(getOrderByNumber(orderNumber)), 300);
-    });
-  },
+    if (orderCache.has(orderNumber)) {
+      return orderCache.get(orderNumber)
+    }
 
-  // Get orders by player ID
-  getOrdersByPlayerId: async (playerId: string): Promise<Order[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(getOrdersByPlayerId(playerId)), 300);
-    });
+    try {
+      const response = await api.getOrderByNumber(orderNumber)
+      return toOrder(response)
+    } catch (error) {
+      console.error('Failed to fetch order by number:', error)
+      return undefined
+    }
   },
-
-  // Get all orders (admin only)
-  getAllOrders: async (): Promise<Order[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...mockOrders]), 300);
-    });
-  },
-
-  // Update order status (mock)
-  updateOrderStatus: async (
-    orderNumber: string,
-    status: Order['status']
-  ): Promise<Order | undefined> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const order = getOrderByNumber(orderNumber);
-        if (order) {
-          order.status = status;
-          if (status === 'completed') {
-            order.completedAt = new Date();
-          }
-        }
-        resolve(order);
-      }, 300);
-    });
-  },
-};
+}

@@ -1,4 +1,4 @@
-import { Currency, Language, Region } from '@/types';
+import { Currency, Language } from '@/types';
 
 // Currency Configuration
 export const CURRENCIES = {
@@ -17,7 +17,7 @@ export const CURRENCIES = {
 export const DEFAULT_CURRENCY: Currency = 'USD';
 
 // Language Configuration
-export const SUPPORTED_LANGUAGES: Language[] = ['fr', 'en', 'es', 'pt', 'ar'];
+export const SUPPORTED_LANGUAGES: Language[] = ['fr', 'en', 'es', 'pt', 'ar', 'ru'];
 
 export const LANGUAGE_NAMES: Record<Language, string> = {
   fr: 'Français',
@@ -25,6 +25,7 @@ export const LANGUAGE_NAMES: Record<Language, string> = {
   es: 'Español',
   pt: 'Português',
   ar: 'العربية',
+  ru: 'Русский',
 };
 
 export const DEFAULT_LANGUAGE: Language = 'en';
@@ -79,6 +80,7 @@ export const getLocaleString = (language: Language): string => {
     es: 'es-ES',
     pt: 'pt-BR',
     ar: 'ar-SA',
+    ru: 'ru-RU',
   };
   return localeMap[language];
 };
