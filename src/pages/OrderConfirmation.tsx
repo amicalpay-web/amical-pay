@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import { Button, Card, LoadingSpinner } from '@/components'
 import { ordersService } from '@/services/ordersService'
@@ -8,7 +7,6 @@ import { Order } from '@/types'
 function OrderConfirmation() {
   const { orderNumber } = useParams<{ orderNumber: string }>()
   const navigate = useNavigate()
-  const { t } = useTranslation()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -16,7 +14,7 @@ function OrderConfirmation() {
     const loadOrder = async () => {
       if (orderNumber) {
         const data = await ordersService.getOrderByNumber(orderNumber)
-        setOrder(data)
+        setOrder(data ?? null)
       }
       setLoading(false)
     }
@@ -72,10 +70,10 @@ function OrderConfirmation() {
         </Card>
 
         <div className="space-y-4">
-          <Button className="w-full" onClick={() => navigate(`/track-order?order=${order.orderNumber}`)}>
+          <Button className="w-full" onClick={() => navigate(``/track-order?order=``{order.orderNumber}``)}>
             Suivre ma commande
           </Button>
-          <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
+          <Button variant="secondary" className="w-full" onClick={() => navigate('/')}> 
             Retour à l'accueil
           </Button>
         </div>
