@@ -1,7 +1,7 @@
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useState, useEffect } from 'react'
-import { Button, Card, Input, LoadingSpinner } from '@/components'
+import { Button, Card, Input } from '@/components'
 import { ordersService } from '@/services/ordersService'
 import { Order } from '@/types'
 
