@@ -6,6 +6,7 @@ import { useCart } from '@/contexts/CartContext'
 import { Button, Card, Input, LoadingSpinner, Alert } from '@/components'
 import { productsService } from '@/services/productsService'
 import { Product } from '@/types'
+import { fazerService, getValidationFields } from '@/services/fazerService'
 
 function ProductDetail() {
   const { id } = useParams<{ id: string }>()
@@ -15,10 +16,11 @@ function ProductDetail() {
   const { addToCart } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [playerId, setPlayerId] = useState('')
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [email, setEmail] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [fazerFields, setFazerFields] = useState<Record<string, string>>({})
+  const [validating, setValidating] = useState(false)
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -31,28 +33,79 @@ function ProductDetail() {
     loadProduct()
   }, [id])
 
+  useEffect(() => {
+    if (!product) return
+
+    const fields = getValidationFields(product.fazerValidationFields)
+    setFazerFields((current) => {
+      const next = { ...current }
+      for (const field of fields) {
+        if (field.key && next[field.key] === undefined) next[field.key] = ''
+      }
+      return next
+    })
+  }, [product])
+
+  const validationFields = getValidationFields(product?.fazerValidationFields)
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!playerId.trim()) newErrors.playerId = 'Player ID is required'
-    if (!/^\d+$/.test(playerId)) newErrors.playerId = 'Player ID must be numeric'
     if (!email.trim()) newErrors.email = 'Email is required'
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Invalid email'
+
+    if (!product?.fazerCategoryId || !product.fazerOfferId || validationFields.length === 0) {
+      newErrors.playerId = 'Ce produit n’est pas configuré pour la validation FazerCards'
+    }
+
+    for (const field of validationFields) {
+      if (field.key && !fazerFields[field.key]?.trim()) {
+        newErrors[field.key] = `${field.label || field.key} est requis`
+      }
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!validateForm()) return
     if (!product) return
 
-    addToCart({
-      product,
-      playerId,
-      whatsappNumber,
-      email,
-    })
+    setValidating(true)
 
-    navigate('/checkout')
+    try {
+      const fields = Object.fromEntries(
+        validationFields
+          .filter((field) => field.key)
+          .map((field) => [field.key as string, fazerFields[field.key as string].trim()])
+      )
+      const validation = await fazerService.validatePlayer({
+        categoryId: product.fazerCategoryId as string,
+        fields,
+      })
+      const validatedPlayerId =
+        validation.playerId ||
+        Object.values(fields)[0] ||
+        ''
+
+      addToCart({
+        product,
+        playerId: validatedPlayerId,
+        whatsappNumber,
+        email,
+        fazerFields: fields,
+      })
+
+      navigate('/checkout')
+    } catch (error) {
+      setErrors({
+        playerId: error instanceof Error
+          ? error.message
+          : 'FazerCards n’a pas pu confirmer cet identifiant',
+      })
+    } finally {
+      setValidating(false)
+    }
   }
 
   if (loading) return <LoadingSpinner fullScreen />
@@ -111,17 +164,34 @@ function ProductDetail() {
             <h2 className="text-2xl font-bold text-white mb-6">Valider votre commande</h2>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Player ID Free Fire *</label>
-                <Input
-                  type="text"
-                  placeholder="Entrez votre Player ID"
-                  value={playerId}
-                  onChange={(e) => setPlayerId(e.target.value)}
-                  error={errors.playerId}
-                  helperText={t('product.playerIdHelp')}
-                />
-              </div>
+              {validationFields.map((field) => {
+                if (!field.key) return null
+
+                return (
+                  <div key={field.key}>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      {field.label || field.key} *
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder={field.label || field.key}
+                      value={fazerFields[field.key] || ''}
+                      onChange={(event) =>
+                        setFazerFields((current) => ({
+                          ...current,
+                          [field.key as string]: event.target.value,
+                        }))
+                      }
+                      error={errors[field.key]}
+                      helperText={
+                        field.options?.length
+                          ? `Valeurs acceptées: ${field.options.map((option) => JSON.stringify(option)).join(', ')}`
+                          : t('product.playerIdHelp')
+                      }
+                    />
+                  </div>
+                )
+              })}
 
               <div>
                 <label className="block text-sm font-medium text-white mb-2">Email *</label>
@@ -150,8 +220,13 @@ function ProductDetail() {
                 message="Vérifiez attentivement votre Player ID avant de continuer"
               />
 
-              <Button className="w-full mt-6" size="lg" onClick={handleContinue}>
-                {t('common.continue')}
+              <Button
+                className="w-full mt-6"
+                size="lg"
+                onClick={handleContinue}
+                isLoading={validating}
+              >
+                {validating ? 'Vérification en cours…' : t('common.continue')}
               </Button>
             </div>
           </Card>
