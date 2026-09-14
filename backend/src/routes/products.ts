@@ -7,6 +7,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express'
 import * as fazer from '../services/fazerCards.js'
+import { getFullCatalog } from '../services/fazerCatalog.js'
 import {
   FazerCatalogItem,
   FazerCatalogSnapshot,
@@ -169,12 +170,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 // Return every category, its real offers, dynamic fields and partial failures.
 router.get('/catalog', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const snapshot = await fazer.getCatalog()
+    const [snapshot, fullCatalog] = await Promise.all([
+      fazer.getCatalog(),
+      getFullCatalog(),
+    ])
     res.setHeader('Cache-Control', 'private, max-age=300')
     res.json({
       status: 'success',
       source: 'fazer',
       ...catalogForResponse(snapshot),
+      families: fullCatalog.sources,
+      errors: fullCatalog.errors,
     })
   } catch (error) {
     next(error)
