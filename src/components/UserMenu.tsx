@@ -5,7 +5,7 @@ import {
   CircleUserRound,
   LifeBuoy,
   LogOut,
-  ReceiptText,
+  Receipt,
   ShoppingBag,
   UserRound,
   WalletCards,
@@ -37,7 +37,7 @@ export function UserMenu({ userLabel, labels, onLogout }: UserMenuProps) {
     { to: '/account', label: labels.profile, icon: UserRound },
     { to: '/track-order', label: labels.orders, icon: ShoppingBag },
     { to: '/account#balance', label: labels.balance, icon: WalletCards },
-    { to: '/track-order#transactions', label: labels.transactions, icon: ReceiptText },
+    { to: '/track-order#transactions', label: labels.transactions, icon: Receipt },
     { to: '/support', label: labels.support, icon: LifeBuoy },
   ]
 
