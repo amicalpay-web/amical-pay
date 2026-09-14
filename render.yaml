@@ -28,15 +28,17 @@ projects:
                 value: info
               - key: FAZER_API_KEY
                 sync: false
+              - key: FAZER_API_BASE_URL
+                value: https://api.fzr.cards/api/v2
               - key: ADMIN_TOKEN
                 generateValue: true
               - key: FRONTEND_URL
-                value: https://amicalpay.com
+                value: https://amicalpay.com,https://www.amicalpay.com
               - key: MONCASH_MODE
                 value: sandbox
               - key: MONCASH_CLIENT_ID
                 sync: false
-              - key: MONCASH_CLIENT_SECRET
+              - key: MONCASH_SECRET_KEY
                 sync: false
               - key: MONCASH_API_BASE_URL
                 value: https://sandbox.moncashbutton.digicelgroup.com/Api
