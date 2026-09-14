@@ -11,6 +11,16 @@ export interface Product {
   image?: string;
   popular?: boolean;
   badge?: string;
+  fazerCategoryId?: string;
+  fazerOfferId?: string;
+  fazerValidationFields?: FazerValidationField[];
+}
+
+export interface FazerValidationField {
+  key?: string;
+  label?: string;
+  type?: string;
+  options?: Array<Record<string, unknown>>;
 }
 
 // Region Types
@@ -50,6 +60,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   createdAt: Date;
   completedAt?: Date;
+  fazerFields?: Record<string, string>;
 }
 
 export type OrderStatus = 'pending' | 'payment_verification' | 'processing' | 'completed' | 'failed';
@@ -62,6 +73,7 @@ export interface CartItem {
   playerId: string;
   whatsappNumber?: string;
   email?: string;
+  fazerFields?: Record<string, string>;
 }
 
 // Price Calculation (Internal - never shown to customer)
