@@ -1,4 +1,5 @@
 import { config } from '../config/env.js'
+import { getCatalog as getTopupCatalog } from './fazerCards.js'
 import {
   FazerCatalogEntry,
   FazerCatalogError,
@@ -162,47 +163,50 @@ async function loadCursorItems(
 async function loadTopupFamily(): Promise<FazerCatalogFamily> {
   const family = createFamily('topup', '/topups')
   try {
-    const result = await loadCursorItems('/topups')
-    const categories = result.items
-    family.meta = result.meta
-    for (const category of categories) {
-      const categoryId = String(category.category_id || '')
-      const entry: FazerCatalogEntry = {
-        id: categoryId,
-        name: String(category.name || categoryId),
-        source: 'topup',
-        category,
-        offers: [],
-        ...(category.imageurl ? { imageurl: category.imageurl } : {}),
-        ...(category.note ? { note: category.note } : {}),
-      }
-      try {
-        const offersResponse = asRecord(await requestJson<unknown>(
-          'GET',
-          '/topups/offers?category_id=' + encodeURIComponent(categoryId) + '&include_ui=1'
-        ))
-        const offers = Array.isArray(offersResponse.offers) ? offersResponse.offers.filter(isRecord) : []
-        entry.name = String(offersResponse.name || entry.name)
-        entry.offers = offers
-        entry.fields = Array.isArray(offersResponse.fields) ? offersResponse.fields.filter(isRecord) : []
-        family.total_offers += offers.length
-      } catch (error) {
-        family.errors.push(toCatalogError(
-          'topup',
-          '/topups/offers?category_id=' + encodeURIComponent(categoryId),
-          error,
-          categoryId
-        ))
-      }
-      family.categories.push(entry)
-    }
+    const snapshot = await getTopupCatalog()
+    family.categories = snapshot.categories.map((item) => ({
+      id: item.category.category_id,
+      name: item.category.category_name,
+      source: 'topup' as const,
+      category: item.category as unknown as JsonRecord,
+      offers: item.offers.map((offer) => ({
+        offer_id: offer.offer_id,
+        name: offer.offer_name,
+        price_usd: offer.price_usd ?? offer.price,
+        stock: offer.stock,
+        description: offer.description,
+        image: offer.image_url,
+        fields: offer.fields,
+        metadata: offer.metadata,
+      })),
+      fields: item.fields,
+      ...(item.note ? { note: item.note } : {}),
+    }))
     family.total_categories = family.categories.length
+    family.total_offers = family.categories.reduce(
+      (total, category) => total + (Array.isArray(category.offers) ? category.offers.length : 0),
+      0
+    )
+    family.meta = {
+      total: family.total_categories,
+      limit: family.total_categories,
+      has_more: false,
+    }
+    if (snapshot.errors) {
+      family.errors.push(...snapshot.errors.map((error) => ({
+        source: 'topup' as const,
+        endpoint: '/topups/offers?category_id=' + encodeURIComponent(error.categoryId),
+        status: 503,
+        message: error.error,
+        retryable: true,
+        categoryId: error.categoryId,
+      })))
+    }
   } catch (error) {
     family.errors.push(toCatalogError('topup', '/topups', error))
   }
   return family
 }
-
 async function loadGameKeyFamily(): Promise<FazerCatalogFamily> {
   const family = createFamily('gamekeys', '/gamekeys')
   try {
