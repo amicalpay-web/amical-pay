@@ -22,6 +22,7 @@ import {
   FazerValidationCatalogResponse,
   FazerPlayerValidationRequest,
   FazerPlayerValidationResponse,
+  FazerValidationField,
 } from '../types/fazer.js'
 
 // FazerCards API Configuration
@@ -146,7 +147,8 @@ export async function getCategories(): Promise<FazerCategory[]> {
       `/topups?${query.toString()}`
     )
 
-    categories.push(...response.items.map((item) => ({
+    const items = Array.isArray(response.items) ? response.items : []
+    categories.push(...items.map((item) => ({
       category_id: item.category_id,
       category_name: item.name,
       name: item.name,
@@ -176,8 +178,13 @@ export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
     price_currency: 'USD',
     price_usd: offer.price_usd,
     stock: offer.stock,
-    description: response.name,
+    description: offer.description || response.note || response.name,
+    image_url: offer.image_url || offer.image || undefined,
     is_popular: false,
+    fields: offer.fields || response.fields || [],
+    metadata: offer.metadata || response.metadata,
+    category_id: response.category_id,
+    category_name: response.name,
   }))
 }
 
@@ -265,12 +272,42 @@ async function fetchCompleteCatalog(): Promise<FazerCatalogSnapshot> {
 
       const category = categories[index]
       try {
-        const offers = await getOffers(category.category_id)
-        catalog.push({ category, offers })
+        const response = await getTopupOffers(category.category_id)
+        const offers = response.offers.map((offer) => ({
+          offer_id: offer.offer_id,
+          offer_name: offer.name,
+          amount: extractNumericAmount(offer.name),
+          price: Number(offer.price_usd),
+          price_currency: 'USD',
+          price_usd: offer.price_usd,
+          stock: offer.stock,
+          description: offer.description || response.note || category.description,
+          image_url: offer.image_url || offer.image || category.image_url,
+          is_popular: false,
+          fields: offer.fields || response.fields || [],
+          metadata: offer.metadata || response.metadata,
+          category_id: response.category_id,
+          category_name: response.name || category.category_name,
+        }))
+        catalog.push({
+          category,
+          offers,
+          fields: response.fields || [],
+          note: response.note,
+          metadata: response.metadata,
+        })
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown FazerCards error'
         failures.push({
           categoryId: category.category_id,
-          error: error instanceof Error ? error.message : 'Unknown FazerCards error',
+          error: message,
+        })
+        // Keep the category visible so one upstream failure cannot hide the
+        // rest of the catalog. The frontend can show the error and retry later.
+        catalog.push({
+          category,
+          offers: [],
+          error: message,
         })
       }
     }
@@ -279,21 +316,17 @@ async function fetchCompleteCatalog(): Promise<FazerCatalogSnapshot> {
   const workerCount = Math.min(CATALOG_CONCURRENCY, categories.length)
   await Promise.all(Array.from({ length: workerCount }, () => worker()))
 
-  if (failures.length > 0) {
-    const error = new Error(`FazerCards catalog import failed for ${failures.length} categories`) as FazerApiError & {
-      failures: Array<{ categoryId: string; error: string }>
-    }
-    error.statusCode = 502
-    error.failures = failures
-    throw error
-  }
-
   catalog.sort((left, right) => left.category.category_name.localeCompare(right.category.category_name))
   return {
     fetched_at: new Date().toISOString(),
-    total_categories: catalog.length,
+    total_categories: categories.length,
     total_offers: catalog.reduce((total, item) => total + item.offers.length, 0),
     categories: catalog,
+    errors: failures.map((failure) => ({
+      categoryId: failure.categoryId,
+      categoryName: categories.find((category) => category.category_id === failure.categoryId)?.category_name || failure.categoryId,
+      error: failure.error,
+    })),
   }
 }
 
@@ -332,16 +365,26 @@ export async function createOrder(
   categoryId: string,
   offerId: string,
   fields: Record<string, unknown>,
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  validationFields?: FazerValidationField[]
 ): Promise<FazerOrderResponse> {
   try {
     // Validate inputs
-    if (!categoryId || !offerId || !fields || Object.keys(fields).length === 0) {
+    if (!categoryId || !offerId || !fields || typeof fields !== 'object') {
       throw new Error('Missing required fields: categoryId, offerId, fields')
     }
 
-    // FazerCards validation is mandatory immediately before any supplier order.
-    await validatePlayer(categoryId, fields)
+    // Validation is only required for categories that FazerCards explicitly
+    // exposes in its validation catalog. Other products can use their own
+    // order fields without being forced through Player ID validation.
+    const requiredValidationFields = validationFields || (
+      Object.keys(fields).length > 0
+        ? (await getPlayerValidationCatalog()).find((category) => category.category_id === categoryId)?.fields || []
+        : []
+    )
+    if (requiredValidationFields.length > 0) {
+      await validatePlayer(categoryId, fields)
+    }
 
     console.log(`📡 Creating FazerCards order for category ${categoryId}...`)
 
