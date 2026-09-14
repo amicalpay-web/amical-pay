@@ -16,10 +16,12 @@ import {
   FazerBalanceResponse,
   FazerApiError,
   FazerConnectionTestResult,
+  FazerTopupCatalogPage,
+  FazerTopupOffersResponse,
 } from '../types/fazer.js'
 
 // FazerCards API Configuration
-const FAZER_API_BASE = 'https://api.fzr.cards/api/v2'
+const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\/+$/, '')
 const FAZER_API_KEY = config.FAZER_API_KEY
 const REQUEST_TIMEOUT = 30000 // 30 seconds
 
@@ -32,7 +34,7 @@ function createHeaders(): Record<string, string> {
   }
 
   return {
-    'Authorization': `Bearer ${FAZER_API_KEY}`,
+    'X-API-Key': FAZER_API_KEY,
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   }
