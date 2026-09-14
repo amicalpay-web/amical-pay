@@ -11,7 +11,7 @@ import {
 const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\/+$/, '')
 const REQUEST_TIMEOUT = 30000
 const CATALOG_CACHE_TTL = 5 * 60 * 1000
-const FAMILY_TIMEOUT = 20000
+const FAMILY_TIMEOUT = 8000
 
 type JsonRecord = Record<string, unknown>
 
