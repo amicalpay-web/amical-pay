@@ -8,12 +8,18 @@ export interface Product {
   sellingPriceUsd: number;
   sellingPriceHtg: number;
   availability: 'in_stock' | 'out_of_stock' | 'limited';
+  stock?: number;
   image?: string;
   popular?: boolean;
   badge?: string;
+  categoryId?: string;
+  categoryName?: string;
+  metadata?: Record<string, unknown>;
+  fazerFields?: FazerValidationField[];
   fazerCategoryId?: string;
   fazerOfferId?: string;
   fazerValidationFields?: FazerValidationField[];
+  requiresPlayerValidation?: boolean;
 }
 
 export interface FazerValidationField {
@@ -21,6 +27,35 @@ export interface FazerValidationField {
   label?: string;
   type?: string;
   options?: Array<Record<string, unknown>>;
+}
+
+export interface FazerCatalogCategory {
+  category_id: string;
+  category_name: string;
+  name?: string;
+  description?: string;
+  image_url?: string;
+}
+
+export interface FazerCatalogProduct extends Product {}
+
+export interface FazerCatalogItem {
+  category: FazerCatalogCategory;
+  offers: Array<Record<string, unknown>>;
+  products: FazerCatalogProduct[];
+  fields?: FazerValidationField[];
+  note?: string;
+  error?: string;
+}
+
+export interface FazerCatalogResponse {
+  status: string;
+  source: 'fazer';
+  fetched_at: string;
+  total_categories: number;
+  total_offers: number;
+  categories: FazerCatalogItem[];
+  errors?: Array<{ categoryId: string; categoryName: string; error: string }>;
 }
 
 // Region Types
