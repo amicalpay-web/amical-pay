@@ -1,5 +1,4 @@
-import { Product, Region } from '@/types'
-import { getProductsByRegion as getMockProductsByRegion, getProductById as getMockProductById } from '@/data/products'
+import { FazerCatalogResponse, Product, Region } from '@/types'
 
 interface ProductsResponse {
   products?: Product[]
@@ -11,12 +10,14 @@ function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`
 }
 
+async function parseError(response: Response, resource: string): Promise<never> {
+  const payload = await response.json().catch(() => ({})) as { error?: string }
+  throw new Error(payload.error || `${resource} returned ${response.status}`)
+}
+
 async function fetchProductsFromApi(region: Region): Promise<Product[]> {
   const response = await fetch(apiUrl(`/api/products?region=${encodeURIComponent(region)}`))
-
-  if (!response.ok) {
-    throw new Error(`Products API returned ${response.status}`)
-  }
+  if (!response.ok) await parseError(response, 'Products API')
 
   const data = (await response.json()) as ProductsResponse
   return Array.isArray(data.products) ? data.products : []
@@ -24,63 +25,48 @@ async function fetchProductsFromApi(region: Region): Promise<Product[]> {
 
 async function fetchProductFromApi(id: string): Promise<Product | undefined> {
   const response = await fetch(apiUrl(`/api/products/${encodeURIComponent(id)}`))
-
-  if (response.status === 404) {
-    return undefined
-  }
-
-  if (!response.ok) {
-    throw new Error(`Product API returned ${response.status}`)
-  }
-
+  if (response.status === 404) return undefined
+  if (!response.ok) await parseError(response, 'Product API')
   return (await response.json()) as Product
 }
 
-async function getProductsWithFallback(region: Region): Promise<Product[]> {
-  try {
-    return await fetchProductsFromApi(region)
-  } catch (error) {
-    console.warn('Products API unavailable, using local fallback', error)
-    return getMockProductsByRegion(region)
-  }
+async function fetchCatalogFromApi(): Promise<FazerCatalogResponse> {
+  const response = await fetch(apiUrl('/api/products/catalog'))
+  if (!response.ok) await parseError(response, 'Catalog API')
+  return (await response.json()) as FazerCatalogResponse
 }
 
 export const productsService = {
+  getCatalog: fetchCatalogFromApi,
+
   getAllProducts: async (): Promise<Product[]> => {
-    const regions: Region[] = ['EU', 'LATAM', 'BR', 'MENA']
-    const products = await Promise.all(regions.map(getProductsWithFallback))
-    return products.flat()
+    const catalog = await fetchCatalogFromApi()
+    return catalog.categories.flatMap((category) => category.products)
   },
 
-  getProductsByRegion: async (region: Region): Promise<Product[]> => {
-    return getProductsWithFallback(region)
-  },
+  getProductsByRegion: fetchProductsFromApi,
 
-  getProductById: async (id: string): Promise<Product | undefined> => {
-    try {
-      return await fetchProductFromApi(id)
-    } catch (error) {
-      console.warn('Product API unavailable, using local fallback', error)
-      return getMockProductById(id)
-    }
-  },
+  getProductById: fetchProductFromApi,
 
   searchProducts: async (query: string, region?: Region): Promise<Product[]> => {
-    const products = region ? await getProductsWithFallback(region) : await productsService.getAllProducts()
+    const products = region
+      ? await fetchProductsFromApi(region)
+      : await productsService.getAllProducts()
     const normalizedQuery = query.trim().toLowerCase()
 
-    if (!normalizedQuery) {
-      return products
-    }
+    if (!normalizedQuery) return products
 
     return products.filter((product) =>
       product.name.toLowerCase().includes(normalizedQuery) ||
-      product.description.toLowerCase().includes(normalizedQuery)
+      product.description.toLowerCase().includes(normalizedQuery) ||
+      product.categoryName?.toLowerCase().includes(normalizedQuery)
     )
   },
 
   getPopularProducts: async (region?: Region): Promise<Product[]> => {
-    const products = region ? await getProductsWithFallback(region) : await productsService.getAllProducts()
+    const products = region
+      ? await fetchProductsFromApi(region)
+      : await productsService.getAllProducts()
     return products.filter((product) => product.popular)
   },
 }
