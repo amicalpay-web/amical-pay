@@ -15,6 +15,8 @@ export function getPort(): number {
 export function validateConfig(): void {
   const NODE_ENV = getEnv('NODE_ENV', 'development')
   const FAZER_API_KEY = getEnv('FAZER_API_KEY')
+  const MONCASH_CLIENT_ID = getEnv('MONCASH_CLIENT_ID')
+  const MONCASH_SECRET_KEY = getEnv('MONCASH_SECRET_KEY', getEnv('MONCASH_CLIENT_SECRET'))
 
   // FAZER_API_KEY is required in production for FazerCards integration
   if (NODE_ENV === 'production') {
@@ -28,6 +30,10 @@ export function validateConfig(): void {
   const ADMIN_TOKEN = getEnv('ADMIN_TOKEN')
   if (!ADMIN_TOKEN && NODE_ENV === 'production') {
     throw new Error('ADMIN_TOKEN is required in production')
+  }
+
+  if (NODE_ENV === 'production' && (!MONCASH_CLIENT_ID || !MONCASH_SECRET_KEY)) {
+    console.warn('⚠️ MonCash credentials are not fully configured; MonCash checkout will remain unavailable')
   }
 }
 
@@ -44,7 +50,9 @@ export const config = {
   // MonCash REST API
   MONCASH_MODE: getEnv('MONCASH_MODE', 'sandbox'),
   MONCASH_CLIENT_ID: getEnv('MONCASH_CLIENT_ID'),
-  MONCASH_CLIENT_SECRET: getEnv('MONCASH_CLIENT_SECRET'),
+  MONCASH_SECRET_KEY: getEnv('MONCASH_SECRET_KEY', getEnv('MONCASH_CLIENT_SECRET')),
+  // Backward-compatible alias used by the existing MonCash service.
+  MONCASH_CLIENT_SECRET: getEnv('MONCASH_SECRET_KEY', getEnv('MONCASH_CLIENT_SECRET')),
   MONCASH_API_BASE_URL: getEnv(
     'MONCASH_API_BASE_URL',
     'https://sandbox.moncashbutton.digicelgroup.com/Api'
