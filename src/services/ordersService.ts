@@ -97,6 +97,9 @@ export const ordersService = {
         currency: orderData.currency,
         total_price: orderData.totalPrice,
         payment_method: orderData.paymentMethod,
+        fazer_category_id: orderData.product.fazerCategoryId,
+        fazer_offer_id: orderData.product.fazerOfferId,
+        fazer_fields: orderData.fazerFields,
       }),
     })
 
