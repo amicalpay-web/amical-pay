@@ -49,13 +49,46 @@ export interface FazerTopupOffer {
   stock?: number
 }
 
+export interface FazerValidationField {
+  key?: string
+  label?: string
+  type?: string
+  options?: Array<Record<string, unknown>>
+}
+
 export interface FazerTopupOffersResponse {
   kind?: string
   category_id: string
   name: string
   offers: FazerTopupOffer[]
-  fields?: Array<{ key: string; label: string; type: string; options?: Array<Record<string, unknown>> }>
+  fields?: FazerValidationField[]
   note?: string
+}
+
+export interface FazerValidationCategory {
+  category_id: string
+  name: string
+  fields: FazerValidationField[]
+}
+
+export interface FazerValidationCatalogResponse {
+  ok: true
+  kind: 'topup'
+  items: FazerValidationCategory[]
+}
+
+export interface FazerPlayerValidationRequest {
+  category_id: string
+  fields: Record<string, unknown>
+}
+
+export interface FazerPlayerValidationResponse {
+  ok: true
+  category_id: string
+  valid: boolean
+  player_name: string | null
+  player_id?: string | null
+  region?: string | null
 }
 
 export interface FazerCatalogItem {
@@ -98,10 +131,7 @@ export interface FazerOffersResponse {
 export interface FazerOrderRequest {
   category_id: string
   offer_id: string
-  fields: {
-    player_id: string
-    [key: string]: any
-  }
+  fields: Record<string, unknown>
 }
 
 export interface FazerOrderResponse {
@@ -149,6 +179,7 @@ export interface FazerErrorResponse {
 
 export interface FazerApiError extends Error {
   statusCode: number
+  status?: number
   fazerId?: string
   fazerCode?: string
   fazerMessage?: string
