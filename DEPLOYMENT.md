@@ -14,14 +14,15 @@ Le Blueprint utilise automatiquement :
 - API health check : /healthz
 - Déploiement automatique à chaque commit sur main
 
-## Secrets obligatoires
+## Clés et variables d’environnement
 
-À renseigner dans Render pour amical-pay-api :
+Pour amical-pay-api :
 
-- FAZER_API_KEY
-- ADMIN_TOKEN
+- FAZER_API_KEY : seule clé à fournir manuellement ; elle vient de FazerCards.
+- ADMIN_TOKEN : ne vient pas de FazerCards. Render le génère automatiquement via generateValue dans render.yaml pour protéger les routes /api/admin/*.
+- FRONTEND_URL : URL publique du frontend, déjà définie dans le Blueprint.
 
-Ces valeurs ne doivent jamais être ajoutées à GitHub.
+Ne mets aucune clé secrète dans GitHub. Ne remplace pas ADMIN_TOKEN par la clé FazerCards.
 
 ## Vérification après déploiement
 
@@ -29,7 +30,8 @@ Ces valeurs ne doivent jamais être ajoutées à GitHub.
 2. Ouvrir https://amical-pay-frontend.onrender.com.
 3. Tester l’affichage des produits et la création d’une commande.
 4. Si l’API répond par une erreur CORS, vérifier que FRONTEND_URL correspond exactement à l’URL publique du frontend.
+5. Pour utiliser les routes admin, envoyer le token généré par Render comme Bearer token.
 
 ## Important
 
-Le fichier local .env.local ne doit pas être versionné. Le .gitignore racine l’exclut pour les prochains commits ; il reste à retirer du dépôt séparément.
+Le fichier local .env.local ne doit pas être versionné. Le .gitignore racine l’exclut et le fichier déjà suivi a été retiré du dépôt.
