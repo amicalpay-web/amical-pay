@@ -59,7 +59,7 @@ projects:
               - amicalpay.com
               - www.amicalpay.com
             buildCommand: npm install && npm run build
-            startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
+            startCommand: npm start
             healthCheckPath: /
             autoDeployTrigger: commit
             envVars:
