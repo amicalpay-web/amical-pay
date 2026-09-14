@@ -23,7 +23,7 @@ export interface FazerCatalogEntry {
   source: FazerCatalogSource
   category?: Record<string, unknown>
   offers?: Array<Record<string, unknown>>
-  fields?: Array<Record<string, unknown>>
+  fields?: Array<unknown>
   metadata?: Record<string, unknown>
   [key: string]: unknown
 }
