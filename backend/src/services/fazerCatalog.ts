@@ -8,7 +8,7 @@ import {
   FazerOrderPayload,
 } from '../types/fazerCatalog.js'
 
-const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\\/+$/, '')
+const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\/+$/, '')
 const REQUEST_TIMEOUT = 30000
 const CATALOG_CACHE_TTL = 5 * 60 * 1000
 
