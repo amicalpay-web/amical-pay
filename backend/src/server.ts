@@ -8,6 +8,7 @@ import orderRoutes from './routes/orders.js'
 import adminRoutes from './routes/admin.js'
 import webhookRoutes from './routes/webhook.js'
 import fazerRoutes from './routes/fazer.js'
+import fazerCatalogRoutes from './routes/fazerCatalog.js'
 import paymentRoutes from './routes/payments.js'
 
 export function createServer(): Express {
@@ -71,6 +72,7 @@ export function createServer(): Express {
   app.use('/api/payments', paymentRoutes)
   app.use('/api/webhook', webhookRoutes)
   app.use('/api/fazer', fazerRoutes)
+  app.use('/api/fazer', fazerCatalogRoutes)
   app.use('/api/admin', authMiddleware, adminRoutes)
 
   // Routes: 404
