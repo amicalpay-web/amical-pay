@@ -8,11 +8,14 @@ export default {
     extend: {
       colors: {
         'amical': {
-          'orange': '#FF6B35',
-          'orange-dark': '#E55A2B',
+          'orange': '#FDB913',
+          'orange-dark': '#D4AF37',
+          'gold': '#D4AF37',
           'dark': '#0F0F0F',
-          'dark-secondary': '#1A1A1A',
-          'dark-tertiary': '#2A2A2A',
+          'dark-secondary': '#1A1A2E',
+          'dark-tertiary': '#16213E',
+          'dark-soft': '#101C35',
+          'card': '#16213E',
           'accent': '#00D4FF',
         },
       },
@@ -20,8 +23,9 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
-        'gradient-dark': 'linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 100%)',
-        'gradient-orange': 'linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%)',
+        'gradient-dark': 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)',
+        'gradient-orange': 'linear-gradient(135deg, #FDB913 0%, #D4AF37 100%)',
+        'gradient-main': 'linear-gradient(135deg, #0F0F0F 0%, #1A1A2E 100%)',
       },
     },
   },

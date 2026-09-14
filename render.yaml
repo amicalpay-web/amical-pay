@@ -1,5 +1,5 @@
 # Exported from Render on 2026-09-13T23:15:41Z
-# AmicalPay Backend - Render Blueprint Configuration
+# Amical Pay Render Blueprint Configuration
 
 version: "1"
 
@@ -28,3 +28,16 @@ projects:
                 value: https://amical-pay-frontend.onrender.com
               - key: LOG_LEVEL
                 value: info
+          - type: web
+            name: amical-pay-frontend
+            runtime: node
+            repo: https://github.com/amicalpay-web/amical-pay
+            plan: free
+            region: oregon
+            buildCommand: npm install && npm run build
+            startCommand: npm run preview
+            healthCheckPath: /
+            autoDeployTrigger: commit
+            envVars:
+              - key: VITE_API_URL
+                value: https://amical-pay-api.onrender.com

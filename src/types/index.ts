@@ -24,7 +24,7 @@ export interface RegionInfo {
 }
 
 // Language Types
-export type Language = 'fr' | 'en' | 'es' | 'pt' | 'ar';
+export type Language = 'fr' | 'en' | 'es' | 'pt' | 'ar' | 'ru';
 
 // Currency Types
 export type Currency = 'USD' | 'HTG';

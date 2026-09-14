@@ -5,6 +5,7 @@ import { en } from './locales/en';
 import { es } from './locales/es';
 import { pt } from './locales/pt';
 import { ar } from './locales/ar';
+import { ru } from './locales/ru';
 import { preferencesService } from '@/services';
 
 const resources = {
@@ -13,6 +14,7 @@ const resources = {
   es: { translation: es },
   pt: { translation: pt },
   ar: { translation: ar },
+  ru: { translation: ru },
 };
 
 const savedLanguage = preferencesService.getLanguage();

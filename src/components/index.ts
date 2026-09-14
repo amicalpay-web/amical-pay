@@ -4,3 +4,8 @@ export { Input } from './Input';
 export { Select } from './Select';
 export { Alert } from './Alert';
 export { LoadingSpinner } from './LoadingSpinner';
+export { Header } from './Header';
+export { Footer } from './Footer';
+export { ProductCard } from './ProductCard';
+export { OrderSummary } from './OrderSummary';
+export { Layout } from './Layout';
