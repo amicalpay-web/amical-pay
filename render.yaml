@@ -30,6 +30,10 @@ projects:
                 generateValue: true
               - key: FRONTEND_URL
                 value: https://amical-pay-frontend.onrender.com
+              - key: MONCASH_RETURN_URL
+                value: https://amical-pay-api.onrender.com/api/webhook/moncash
+              - key: MONCASH_ALERT_URL
+                value: https://amical-pay-frontend.onrender.com/payment-success
 
           # Frontend application
           - type: web
