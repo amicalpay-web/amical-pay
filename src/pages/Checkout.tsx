@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '@/contexts/CartContext'
 import { useAppContext } from '@/contexts/AppContext'
@@ -7,7 +6,6 @@ import { ordersService } from '@/services/ordersService'
 import { useState } from 'react'
 
 function Checkout() {
-  const { t } = useTranslation()
   const navigate = useNavigate()
   const { cartItems, clearCart } = useCart()
   const { currency } = useAppContext()
@@ -42,11 +40,10 @@ function Checkout() {
         currency,
         status: 'pending',
         paymentMethod: selectedPayment,
-        createdAt: new Date(),
         totalPrice: price,
       })
       clearCart()
-      navigate(`/order-confirmation/${order.orderNumber}`)
+      navigate(``/order-confirmation/``{order.orderNumber}``)
     } catch (error) {
       console.error('Order creation failed:', error)
     } finally {
