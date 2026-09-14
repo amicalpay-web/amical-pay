@@ -14,6 +14,8 @@ import {
   FazerBalanceResponse,
   FazerApiError,
   FazerConnectionTestResult,
+  FazerCatalogItem,
+  FazerCatalogSnapshot,
   FazerTopupCatalogPage,
   FazerTopupOffersResponse,
 } from '../types/fazer.js'
@@ -22,6 +24,7 @@ import {
 const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/v2').replace(/\/+$/, '')
 const FAZER_API_KEY = config.FAZER_API_KEY
 const REQUEST_TIMEOUT = 30000 // 30 seconds
+const RATE_LIMIT_RETRIES = 5
 
 /**
  * Create headers for FazerCards API requests
@@ -51,55 +54,69 @@ async function fazerRequest<T>(
   }
 
   const url = `${FAZER_API_BASE}${path}`
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: createHeaders(),
-      body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    })
+  for (let attempt = 0; attempt <= RATE_LIMIT_RETRIES; attempt += 1) {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 
-    clearTimeout(timeoutId)
-
-    const data = (await response.json()) as any
-
-    // Handle API errors
-    if (!response.ok) {
-      const error: FazerApiError = new Error(
-        data?.message || `FazerCards API error: ${response.status}`
-      ) as FazerApiError
-      error.statusCode = response.status
-      error.fazerId = data?.id
-      error.fazerCode = data?.code
-      error.fazerMessage = data?.message
-
-      console.error('❌ FazerCards API Error:', {
-        status: response.status,
-        path,
-        message: data?.message,
-        code: data?.code,
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: createHeaders(),
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
       })
 
+      const data = (await response.json()) as any
+
+      if (response.status === 429 && attempt < RATE_LIMIT_RETRIES) {
+        const retryAfterHeader = response.headers.get('retry-after')
+        const retryAfterBody = typeof data?.error === 'string'
+          ? data.error.match(/(\d+)\s*(?:s|sec|second)/i)?.[1]
+          : undefined
+        const retrySeconds = Number(retryAfterHeader || retryAfterBody || 30)
+        const waitMs = Math.min(Math.max(retrySeconds * 1000, 1000), 120000)
+        console.warn(`⚠️ FazerCards rate limit for ${path}; retrying in ${Math.ceil(waitMs / 1000)}s`)
+        await new Promise((resolve) => setTimeout(resolve, waitMs))
+        continue
+      }
+
+      if (!response.ok) {
+        const error: FazerApiError = new Error(
+          data?.message || data?.error || `FazerCards API error: ${response.status}`
+        ) as FazerApiError
+        error.statusCode = response.status
+        error.fazerId = data?.id
+        error.fazerCode = data?.code
+        error.fazerMessage = data?.message || data?.error
+
+        console.error('❌ FazerCards API Error:', {
+          status: response.status,
+          path,
+          message: data?.message || data?.error,
+          code: data?.code,
+        })
+
+        throw error
+      }
+
+      return data as T
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('abort')) {
+        const timeoutError: FazerApiError = new Error(
+          'FazerCards API request timeout after 30 seconds'
+        ) as FazerApiError
+        timeoutError.statusCode = 504
+        throw timeoutError
+      }
+
       throw error
+    } finally {
+      clearTimeout(timeoutId)
     }
-
-    return data as T
-  } catch (error) {
-    clearTimeout(timeoutId)
-
-    if (error instanceof TypeError && error.message.includes('abort')) {
-      const timeoutError: FazerApiError = new Error(
-        'FazerCards API request timeout after 30 seconds'
-      ) as FazerApiError
-      timeoutError.statusCode = 504
-      throw timeoutError
-    }
-
-    throw error
   }
+
+  throw new Error(`FazerCards rate limit retries exhausted for ${path}`)
 }
 
 /**
@@ -155,6 +172,85 @@ export async function getOffers(categoryId: string): Promise<FazerOffer[]> {
     description: response.name,
     is_popular: false,
   }))
+}
+
+const CATALOG_CACHE_TTL = 5 * 60 * 1000
+const CATALOG_CONCURRENCY = 1
+let catalogCache: { snapshot: FazerCatalogSnapshot; expiresAt: number } | undefined
+let catalogRequest: Promise<FazerCatalogSnapshot> | undefined
+
+/**
+ * Import the complete FazerCards catalog without exposing the API key.
+ * Categories are fetched with cursor pagination and offers are loaded with
+ * bounded concurrency. The short cache avoids repeating dozens of upstream
+ * requests for every storefront visitor while keeping prices reasonably fresh.
+ */
+async function fetchCompleteCatalog(): Promise<FazerCatalogSnapshot> {
+  const categories = await getCategories()
+  const catalog: FazerCatalogItem[] = []
+  const failures: Array<{ categoryId: string; error: string }> = []
+  let nextIndex = 0
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const index = nextIndex
+      nextIndex += 1
+      if (index >= categories.length) return
+
+      const category = categories[index]
+      try {
+        const offers = await getOffers(category.category_id)
+        catalog.push({ category, offers })
+      } catch (error) {
+        failures.push({
+          categoryId: category.category_id,
+          error: error instanceof Error ? error.message : 'Unknown FazerCards error',
+        })
+      }
+    }
+  }
+
+  const workerCount = Math.min(CATALOG_CONCURRENCY, categories.length)
+  await Promise.all(Array.from({ length: workerCount }, () => worker()))
+
+  if (failures.length > 0) {
+    const error = new Error(`FazerCards catalog import failed for ${failures.length} categories`) as FazerApiError & {
+      failures: Array<{ categoryId: string; error: string }>
+    }
+    error.statusCode = 502
+    error.failures = failures
+    throw error
+  }
+
+  catalog.sort((left, right) => left.category.category_name.localeCompare(right.category.category_name))
+  return {
+    fetched_at: new Date().toISOString(),
+    total_categories: catalog.length,
+    total_offers: catalog.reduce((total, item) => total + item.offers.length, 0),
+    categories: catalog,
+  }
+}
+
+export async function getCatalog(): Promise<FazerCatalogSnapshot> {
+  if (catalogCache && catalogCache.expiresAt > Date.now()) {
+    return catalogCache.snapshot
+  }
+
+  if (!catalogRequest) {
+    catalogRequest = fetchCompleteCatalog()
+      .then((snapshot) => {
+        catalogCache = {
+          snapshot,
+          expiresAt: Date.now() + CATALOG_CACHE_TTL,
+        }
+        return snapshot
+      })
+      .finally(() => {
+        catalogRequest = undefined
+      })
+  }
+
+  return catalogRequest
 }
 
 function extractNumericAmount(value: string): number | undefined {
