@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { useAppContext } from '@/contexts/AppContext'
 import { useCart } from '@/contexts/CartContext'
 import { Button, Card, Input, LoadingSpinner, Alert } from '@/components'
@@ -10,8 +9,7 @@ import { Product } from '@/types'
 function ProductDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { t } = useTranslation()
-  const { region, currency } = useAppContext()
+  const { currency } = useAppContext()
   const { addToCart } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
