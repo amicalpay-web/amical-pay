@@ -58,6 +58,18 @@ export interface FazerTopupOffersResponse {
   note?: string
 }
 
+export interface FazerCatalogItem {
+  category: FazerCategory
+  offers: FazerOffer[]
+}
+
+export interface FazerCatalogSnapshot {
+  fetched_at: string
+  total_categories: number
+  total_offers: number
+  categories: FazerCatalogItem[]
+}
+
 // ============ OFFERS / PACKAGES ============
 
 export interface FazerOffer {
