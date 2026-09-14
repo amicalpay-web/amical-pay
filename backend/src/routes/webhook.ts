@@ -6,6 +6,7 @@ import {
   retrieveOrderPayment,
   retrieveTransactionPayment,
 } from '../services/moncash.js'
+import { fulfillFazerOrder } from './orders.js'
 
 const router = Router()
 
@@ -60,6 +61,20 @@ const handleMonCashReturn = async (req: Request, res: Response, next: NextFuncti
         payment = getPaymentFromResponse(response) as Record<string, unknown>
         const message = typeof payment.message === 'string' ? payment.message.toLowerCase() : ''
         verificationStatus = message === 'successful' ? 'success' : 'pending'
+        if (verificationStatus === 'success' && orderId) {
+          try {
+            const order = await fulfillFazerOrder(orderId)
+            console.log('✅ FazerCards order created after MonCash confirmation', {
+              orderNumber: orderId,
+              fazerOrderId: order.fazer_order_id,
+            })
+          } catch (error) {
+            // Payment is already confirmed. Keep the callback successful while
+            // exposing the fulfillment failure for retry/operations.
+            verificationStatus = 'fulfillment_error'
+            console.error('❌ FazerCards fulfillment failed after MonCash payment:', error)
+          }
+        }
       } catch (error) {
         console.error('MonCash payment verification failed:', error)
         verificationStatus = 'verification_error'
@@ -82,7 +97,7 @@ const handleMonCashReturn = async (req: Request, res: Response, next: NextFuncti
       return
     }
 
-    res.status(verificationStatus === 'verification_error' ? 502 : 200).json({
+    res.status(['verification_error', 'fulfillment_error'].includes(verificationStatus) ? 502 : 200).json({
       received: true,
       provider: 'moncash',
       status: verificationStatus,
