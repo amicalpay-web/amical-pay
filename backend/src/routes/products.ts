@@ -1,7 +1,6 @@
 /**
  * Products Routes
- * Fetches real Free Fire products from FazerCards API
- * Falls back to mock data if FazerCards is unavailable
+ * Reads real Free Fire top-up offers from FazerCards through the backend.
  */
 
 import { Router, Request, Response, NextFunction } from 'express'
@@ -9,7 +8,7 @@ import * as fazer from '../services/fazerCards.js'
 
 const router = Router()
 
-// ============ MOCK DATA (Fallback only) ============
+// ============ MOCK DATA (development fallback only) ============
 
 const mockProducts: Record<string, any[]> = {
   LATAM: [
@@ -40,20 +39,16 @@ const mockProducts: Record<string, any[]> = {
   ],
 }
 
-// ============ HELPER FUNCTIONS ============
-
-/**
- * Normalize FazerCards offer to AmicalPay product format
- */
 function normalizeOffer(offer: any, region: string, index: number): any {
+  const price = Number(offer.price_usd ?? offer.price ?? 0)
   return {
     id: `${region.toLowerCase()}-ff-${offer.offer_id}`,
     name: offer.offer_name,
-    diamonds: offer.amount,
+    diamonds: offer.amount || 0,
     region,
     description: offer.description || `Free Fire ${region} - ${offer.offer_name}`,
-    sellingPriceUsd: Number(offer.price_usd ?? offer.price ?? 0),
-    sellingPriceHtg: Number(offer.price_usd ?? offer.price ?? 0) * 50, // Existing HTG display rate
+    sellingPriceUsd: price,
+    sellingPriceHtg: price * 50,
     availability: typeof offer.stock === 'number' && offer.stock <= 0 ? 'out_of_stock' : 'in_stock',
     popular: offer.is_popular || index < 2,
     source: 'fazer',
@@ -61,53 +56,78 @@ function normalizeOffer(offer: any, region: string, index: number): any {
   }
 }
 
-// ============ CATEGORY RESOLUTION ============\n\nconst regionHints: Record<string, string[]> = {\n  LATAM: ['latam', 'latin', 'south america'],\n  EU: ['eu', 'europe'],\n  BR: ['br', 'brazil'],\n  MENA: ['mena', 'middle east', 'arab'],\n}\n\nasync function resolveCategoryId(region: string): Promise<string> {\n  const categories = await fazer.getCategories()\n  const freeFire = categories.filter((category) => {\n    const text = `${category.category_id} ${category.category_name}`.toLowerCase()\n    return text.includes('free_fire') || text.includes('free fire')\n  })\n  const hints = regionHints[region] || []\n  const regional = freeFire.find((category) => {\n    const text = `${category.category_id} ${category.category_name}`.toLowerCase()\n    return hints.some((hint) => text.includes(hint))\n  })\n  const fallback = freeFire.find((category) => category.category_id.toLowerCase().includes('auto')) || freeFire[0]\n\n  if (!regional && !fallback) {\n    throw new Error(`No purchasable Free Fire category found for region ${region}`)\n  }\n\n  return (regional || fallback).category_id\n}\n\n// ============ ROUTES ============
+const regionHints: Record<string, string[]> = {
+  LATAM: ['latam', 'latin', 'south america'],
+  EU: ['eu', 'europe'],
+  BR: ['br', 'brazil'],
+  MENA: ['mena', 'middle east', 'arab'],
+}
 
-/**
- * GET /api/products?region=LATAM
- * Get products for a specific region
- * Fetches real data from FazerCards, falls back to mock if unavailable
- */
+async function resolveCategoryId(region: string): Promise<string> {
+  const categories = await fazer.getCategories()
+  const freeFire = categories.filter((category) => {
+    const text = `${category.category_id} ${category.category_name}`.toLowerCase()
+    return text.includes('free_fire') || text.includes('free fire')
+  })
+  const hints = regionHints[region] || []
+  const regional = freeFire.find((category) => {
+    const text = `${category.category_id} ${category.category_name}`.toLowerCase()
+    return hints.some((hint) => text.includes(hint))
+  })
+  const fallback = freeFire.find((category) => category.category_id.toLowerCase().includes('auto')) || freeFire[0]
+
+  if (!regional && !fallback) {
+    throw new Error(`No purchasable Free Fire category found for region ${region}`)
+  }
+
+  return (regional || fallback).category_id
+}
+
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const region = (req.query.region as string) || 'LATAM'
-
+    const region = ((req.query.region as string) || 'LATAM').toUpperCase()
     console.log(`📦 Fetching products for region: ${region}`)
 
-    // Map regions to FazerCards category IDs
-    const categoryMap: Record<string, string> = {
-      LATAM: 'free_fire_latam',
-      EU: 'free_fire_eu',
-      BR: 'free_fire_br',
-      MENA: 'free_fire_mena',
-    }
-
-    const categoryId = categoryMap[region]
-
-    if (!categoryId) {
+    if (!Object.prototype.hasOwnProperty.call(regionHints, region)) {
       return res.status(400).json({
         error: 'Invalid region',
-        supportedRegions: Object.keys(categoryMap),
+        supportedRegions: Object.keys(regionHints),
       })
     }
 
-    let products = []
+    let products: any[] = []
     let source = 'unknown'
 
     try {
-      // Try to fetch from FazerCards API
-      console.log(`📡 Fetching ${region} offers from FazerCards...`)
+      const categoryId = await resolveCategoryId(region)
+      console.log(`📡 Fetching ${region} offers from FazerCards category ${categoryId}...`)
       const offers = await fazer.getOffers(categoryId)
-
       products = offers.map((offer, index) => normalizeOffer(offer, region, index))
       source = 'fazer'
-
       console.log(`✅ Fetched ${products.length} products from FazerCards for ${region}`)
-    } catch (error) {\n      const details = error instanceof Error ? error.message : 'Unknown FazerCards error'\n      console.error(`❌ FazerCards unavailable for ${region}: ${details}`)\n\n      if (process.env.NODE_ENV === 'production') {\n        return res.status(502).json({\n          error: 'FazerCards catalogue unavailable',\n          region,\n          source: 'fazer_error',\n          details,\n        })\n      }\n\n      console.warn(`📦 Using ${products.length} mock products for ${region} outside production`)\n      products = mockProducts[region] || []\n      source = 'mock'\n    }\n\n    res.json({
+    } catch (error) {
+      const details = error instanceof Error ? error.message : 'Unknown FazerCards error'
+      console.error(`❌ FazerCards unavailable for ${region}: ${details}`)
+
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(502).json({
+          error: 'FazerCards catalogue unavailable',
+          region,
+          source: 'fazer_error',
+          details,
+        })
+      }
+
+      console.warn(`📦 Using mock products for ${region} outside production`)
+      products = mockProducts[region] || []
+      source = 'mock'
+    }
+
+    res.json({
       region,
       count: products.length,
       products,
-      source, // Indicates whether data came from FazerCards or mock
+      source,
       _debug: {
         timestamp: new Date().toISOString(),
         dataSource: source === 'fazer' ? 'Real FazerCards API' : 'Fallback Mock Data',
@@ -118,51 +138,29 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   }
 })
 
-/**
- * GET /api/products/:id
- * Get a specific product by ID
- */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params
 
-    console.log(`🔍 Searching for product: ${id}`)
-
-    // Search in all mock products
     for (const region in mockProducts) {
       const product = mockProducts[region].find((p) => p.id === id)
-      if (product) {
-        return res.json(product)
-      }
+      if (product) return res.json(product)
     }
 
-    // If not found in mock, try to fetch from FazerCards
     try {
-      // This is a simplified approach - in production, you'd need better matching
       const regions = ['LATAM', 'EU', 'BR', 'MENA']
-      const categoryMap: Record<string, string> = {
-        LATAM: 'free_fire_latam',
-        EU: 'free_fire_eu',
-        BR: 'free_fire_br',
-        MENA: 'free_fire_mena',
-      }
-
       for (const region of regions) {
-        const categoryId = categoryMap[region]
+        const categoryId = await resolveCategoryId(region)
         const offers = await fazer.getOffers(categoryId)
-
         for (const offer of offers) {
           const productId = `${region.toLowerCase()}-ff-${offer.offer_id}`
-          if (productId === id) {
-            return res.json(normalizeOffer(offer, region, 0))
-          }
+          if (productId === id) return res.json(normalizeOffer(offer, region, 0))
         }
       }
     } catch (error) {
       console.warn('Failed to search FazerCards:', error instanceof Error ? error.message : error)
     }
 
-    // Not found
     res.status(404).json({
       error: 'Product not found',
       id,
