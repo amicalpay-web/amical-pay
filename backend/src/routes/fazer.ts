@@ -90,12 +90,33 @@ router.get(
           name: offer.offer_name,
           amount: offer.amount,
           price: offer.price,
+          priceUsd: offer.price_usd,
           currency: offer.price_currency,
+          stock: offer.stock,
           description: offer.description,
           image: offer.image_url,
           isPopular: offer.is_popular,
+          fields: offer.fields || [],
+          metadata: offer.metadata || {},
         })),
       })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+
+/**
+ * GET /api/fazer/catalog
+ * Return the complete FazerCards catalog without coupling it to validation.
+ */
+router.get(
+  '/catalog',
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const snapshot = await fazer.getCatalog()
+      res.setHeader('Cache-Control', 'private, max-age=300')
+      res.json({ status: 'success', source: 'fazer', ...snapshot })
     } catch (error) {
       next(error)
     }
