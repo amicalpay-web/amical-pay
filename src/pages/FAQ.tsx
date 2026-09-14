@@ -1,9 +1,6 @@
-import { useTranslation } from 'react-i18next'
 import { Card } from '@/components'
 
 function FAQ() {
-  const { t } = useTranslation()
-
   const faqs = [
     {
       question: 'Comment puis-je acheter des Diamonds?',
