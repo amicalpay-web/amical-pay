@@ -8,12 +8,15 @@ export default {
     extend: {
       colors: {
         'amical': {
-          'orange': '#FF6B35',
-          'orange-dark': '#E55A2B',
+          'red': '#EB2504',
+          'orange': '#F76B01',
+          'orange-dark': '#D65A00',
           'dark': '#0F0F0F',
           'dark-secondary': '#1A1A1A',
           'dark-tertiary': '#2A2A2A',
-          'accent': '#00D4FF',
+          'accent': '#115BD3',
+          'violet': '#711BD4',
+          'pink': '#CB1D86',
         },
       },
       fontFamily: {
@@ -21,7 +24,7 @@ export default {
       },
       backgroundImage: {
         'gradient-dark': 'linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 100%)',
-        'gradient-orange': 'linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%)',
+        'gradient-orange': 'linear-gradient(135deg, #EB2504 0%, #F76B01 100%)',
       },
     },
   },
