@@ -52,10 +52,12 @@ function OrderConfirmation() {
               <span className="text-gray-400">Produit</span>
               <span className="text-white font-semibold">{order.product.name}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Player ID</span>
-              <span className="text-white font-semibold">{order.playerId}</span>
-            </div>
+            {order.accountFields && Object.entries(order.accountFields).map(([key, value]) => (
+              <div className="flex justify-between gap-4" key={key}>
+                <span className="text-gray-400">{key.replace(/[_-]+/g, ' ')}</span>
+                <span className="text-white font-semibold text-right">{value}</span>
+              </div>
+            ))}
             <div className="flex justify-between">
               <span className="text-gray-400">Montant</span>
               <span className="text-white font-semibold">
