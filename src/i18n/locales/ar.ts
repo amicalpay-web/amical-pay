@@ -18,7 +18,7 @@ export const ar = {
     success: 'نجاح',
   },
   header: {
-    logo: 'AmicalPay',
+    logo: 'Amical Pay',
     home: 'الرئيسية',
     diamonds: 'الماس Free Fire',
     howItWorks: 'كيف يعمل',
