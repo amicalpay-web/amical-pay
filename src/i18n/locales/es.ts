@@ -122,7 +122,7 @@ export const es = {
     regions: 'Regiones',
     pricesMargins: 'Precios y Márgenes',
     payments: 'Pagos',
-    fazercards: 'FazerCards',
+    fazercards: 'Proveedor',
     settings: 'Configuración',
     revenue: 'Ingresos',
     totalOrders: 'Pedidos Totales',

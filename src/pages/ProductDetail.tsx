@@ -125,7 +125,7 @@ function ProductDetail() {
       let validatedPlayerId = accountValidationFields.player_id || ''
       if (product.requiresPlayerValidation) {
         if (!validationCategoryId) {
-          throw new Error('La catégorie officielle de validation FazerCards est indisponible pour ce produit.')
+          throw new Error('La catégorie officielle de validation est indisponible pour ce produit.')
         }
 
         const validation = await fazerService.validatePlayer({
@@ -149,7 +149,7 @@ function ProductDetail() {
       setErrors({
         form: error instanceof Error
           ? error.message
-          : 'FazerCards n’a pas pu traiter ces informations',
+          : 'Une erreur est survenue lors du traitement de ces informations',
       })
     } finally {
       setValidating(false)
@@ -221,9 +221,9 @@ function ProductDetail() {
               {validationFields.length > 0 && (
                 <div className="rounded-xl border border-amical-orange/30 bg-amical-orange/5 p-4">
                   <p className="text-sm font-semibold text-amical-orange">Identifiants du compte</p>
-                  <p className="mt-1 text-xs text-gray-400">Ces champs utilisent la catégorie officielle de validation FazerCards.</p>
+                  <p className="mt-1 text-xs text-gray-400">Ces champs utilisent la catégorie officielle de validation du fournisseur.</p>
                   <div className="mt-4 space-y-4">
-                    {validationFields.map((field) => renderField(field, 'Ce champ sera vérifié par FazerCards avant la commande.'))}
+                    {validationFields.map((field) => renderField(field, 'Ce champ sera vérifié par notre fournisseur avant la commande.'))}
                   </div>
                 </div>
               )}
@@ -233,7 +233,7 @@ function ProductDetail() {
                   <p className="text-sm font-semibold text-white">Informations nécessaires à la recharge</p>
                   <p className="mt-1 text-xs text-gray-400">Ces champs servent uniquement à exécuter l’offre choisie.</p>
                   <div className="mt-4 space-y-4">
-                    {extraOrderFields.map((field) => renderField(field, 'Ce champ sera transmis à FazerCards pour exécuter la recharge.'))}
+                    {extraOrderFields.map((field) => renderField(field, 'Ce champ sera transmis à notre fournisseur pour exécuter la recharge.'))}
                   </div>
                 </div>
               )}
@@ -263,8 +263,8 @@ function ProductDetail() {
                 type="info"
                 title="Information"
                 message={product.requiresPlayerValidation
-                  ? 'Les identifiants du compte seront vérifiés par FazerCards avant leur ajout au panier.'
-                  : 'Les champs demandés proviennent directement de FazerCards.'}
+                  ? 'Les identifiants du compte seront vérifiés par notre fournisseur avant leur ajout au panier.'
+                  : 'Les champs demandés proviennent directement de notre fournisseur.'}
               />
 
               <Button

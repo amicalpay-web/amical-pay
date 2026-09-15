@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Flame, ShieldCheck, Truck, Wallet, Headphones, ArrowRight } from 'lucide-react'
 
 const reasons = [
-  { icon: ShieldCheck, title: 'Produits officiels', desc: 'FazerCards' },
+  { icon: ShieldCheck, title: 'Produits officiels', desc: 'Garantis authentiques' },
   { icon: Truck, title: 'Livraison rapide', desc: '(après vérification)' },
   { icon: Wallet, title: 'Paiements sécurisés', desc: 'MonCash & PayPal' },
   { icon: Headphones, title: 'Support WhatsApp', desc: '+509 4388 2372' },

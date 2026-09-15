@@ -45,7 +45,7 @@ function Home() {
               <ShieldCheck size={18} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Produits officiels FazerCards</p>
+              <p className="text-sm font-semibold text-white">Produits officiels garantis</p>
               <p className="text-xs text-gray-400">Catalogue vérifié et à jour</p>
             </div>
           </div>
@@ -62,7 +62,7 @@ function Home() {
         <WhyChooseUs />
       </div>
 
-      {/* Real FazerCards catalog, loaded live - see FazerHomeCatalog */}
+      {/* Live catalog, loaded live - see FazerHomeCatalog */}
       <FazerHomeCatalog />
 
       {/* How It Works */}

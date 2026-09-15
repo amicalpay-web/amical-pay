@@ -122,7 +122,7 @@ export const ar = {
     regions: 'المناطق',
     pricesMargins: 'الأسعار والهوامش',
     payments: 'الدفعات',
-    fazercards: 'FazerCards',
+    fazercards: 'المورد',
     settings: 'الإعدادات',
     revenue: 'الإيرادات',
     totalOrders: 'إجمالي الطلبات',
