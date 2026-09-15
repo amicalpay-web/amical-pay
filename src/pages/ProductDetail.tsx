@@ -42,6 +42,7 @@ function ProductDetail() {
     ].filter((field, index, all) =>
       Boolean(field.key) && all.findIndex((candidate) => candidate.key === field.key) === index
     )
+
     setFazerFields((current) => {
       const next = { ...current }
       for (const field of fields) {
@@ -56,15 +57,46 @@ function ProductDetail() {
   const validationKeys = new Set(validationFields.map((field) => field.key).filter(Boolean))
   const extraOrderFields = orderFields.filter((field) => field.key && !validationKeys.has(field.key))
   const formFields = [...validationFields, ...extraOrderFields]
+  const validationCategoryId = product?.fazerValidationCategoryId || product?.fazerCategoryId
+
+  const renderField = (field: FazerValidationField, helperText: string) => {
+    if (!field.key) return null
+
+    return (
+      <div key={field.key}>
+        <label className="block text-sm font-medium text-white mb-2">
+          {field.label || field.key}{field.required === false ? '' : ' *'}
+        </label>
+        <Input
+          type={field.type === 'number' ? 'number' : 'text'}
+          placeholder={field.label || field.key}
+          value={fazerFields[field.key] || ''}
+          onChange={(event) =>
+            setFazerFields((current) => ({
+              ...current,
+              [field.key as string]: event.target.value,
+            }))
+          }
+          error={errors[field.key]}
+          helperText={field.options?.length
+            ? 'Valeurs acceptées: ' + field.options.map((option) => JSON.stringify(option)).join(', ')
+            : helperText}
+        />
+      </div>
+    )
+  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-    if (!email.trim()) newErrors.email = 'Email is required'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Invalid email'
+    if (!email.trim()) {
+      newErrors.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Invalid email'
+    }
 
     for (const field of formFields) {
-      if (field.key && !fazerFields[field.key]?.trim()) {
-        newErrors[field.key] = `${field.label || field.key} est requis`
+      if (field.required !== false && field.key && !fazerFields[field.key]?.trim()) {
+        newErrors[field.key] = (field.label || field.key) + ' est requis'
       }
     }
 
@@ -73,26 +105,31 @@ function ProductDetail() {
   }
 
   const handleContinue = async () => {
-    if (!validateForm()) return
-    if (!product) return
+    if (!validateForm() || !product) return
 
     setValidating(true)
+    setErrors({})
 
     try {
       const fields = Object.fromEntries(
         formFields
-          .filter((field) => field.key)
+          .filter((field) => field.key && fazerFields[field.key]?.trim())
           .map((field) => [field.key as string, fazerFields[field.key as string].trim()])
       )
       const accountValidationFields = Object.fromEntries(
         validationFields
-          .filter((field) => field.key)
+          .filter((field) => field.key && fazerFields[field.key]?.trim())
           .map((field) => [field.key as string, fazerFields[field.key as string].trim()])
-      )
-      let validatedPlayerId = accountValidationFields.player_id || Object.values(accountValidationFields)[0] || Object.values(fields)[0] || ''
-      if (product.requiresPlayerValidation && product.fazerCategoryId) {
+      ) as Record<string, string>
+
+      let validatedPlayerId = accountValidationFields.player_id || ''
+      if (product.requiresPlayerValidation) {
+        if (!validationCategoryId) {
+          throw new Error('La catégorie officielle de validation FazerCards est indisponible pour ce produit.')
+        }
+
         const validation = await fazerService.validatePlayer({
-          categoryId: product.fazerValidationCategoryId || product.fazerCategoryId,
+          categoryId: validationCategoryId,
           fields: accountValidationFields,
         })
         validatedPlayerId = validation.playerId || validatedPlayerId
@@ -101,6 +138,7 @@ function ProductDetail() {
       addToCart({
         product,
         playerId: validatedPlayerId,
+        accountFields: accountValidationFields,
         whatsappNumber,
         email,
         fazerFields: fields,
@@ -144,7 +182,6 @@ function ProductDetail() {
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Product Info */}
           <Card>
             <h1 className="text-3xl font-bold text-white mb-2">{product.name}</h1>
             {product.diamonds > 0 && (
@@ -169,10 +206,9 @@ function ProductDetail() {
             </div>
           </Card>
 
-          {/* Form */}
           <Card>
             <h2 className="text-2xl font-bold text-white mb-6">
-              {product.requiresPlayerValidation ? 'Valider votre commande' : 'Informations de commande'}
+              {product.requiresPlayerValidation ? 'Valider les identifiants du compte' : 'Informations de commande'}
             </h2>
 
             <div className="space-y-4">
@@ -181,37 +217,11 @@ function ProductDetail() {
                   {errors.form}
                 </p>
               )}
-  const renderField = (field: FazerValidationField, helperText?: string) => {
-    if (!field.key) return null
-
-    return (
-      <div key={field.key}>
-        <label className="block text-sm font-medium text-white mb-2">
-          {field.label || field.key} *
-        </label>
-        <Input
-          type={field.type === 'number' ? 'number' : 'text'}
-          placeholder={field.label || field.key}
-          value={fazerFields[field.key] || ''}
-          onChange={(event) =>
-            setFazerFields((current) => ({
-              ...current,
-              [field.key as string]: event.target.value,
-            }))
-          }
-          error={errors[field.key]}
-          helperText={field.options?.length
-            ? 'Valeurs acceptées: ' + field.options.map((option) => JSON.stringify(option)).join(', ')
-            : helperText}
-        />
-      </div>
-    )
-  }
 
               {validationFields.length > 0 && (
                 <div className="rounded-xl border border-amical-orange/30 bg-amical-orange/5 p-4">
                   <p className="text-sm font-semibold text-amical-orange">Identifiants du compte</p>
-                  <p className="mt-1 text-xs text-gray-400">Ces identifiants utilisent le système officiel de validation FazerCards.</p>
+                  <p className="mt-1 text-xs text-gray-400">Ces champs utilisent la catégorie officielle de validation FazerCards.</p>
                   <div className="mt-4 space-y-4">
                     {validationFields.map((field) => renderField(field, 'Ce champ sera vérifié par FazerCards avant la commande.'))}
                   </div>
@@ -221,6 +231,7 @@ function ProductDetail() {
               {extraOrderFields.length > 0 && (
                 <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-sm font-semibold text-white">Informations nécessaires à la recharge</p>
+                  <p className="mt-1 text-xs text-gray-400">Ces champs servent uniquement à exécuter l’offre choisie.</p>
                   <div className="mt-4 space-y-4">
                     {extraOrderFields.map((field) => renderField(field, 'Ce champ sera transmis à FazerCards pour exécuter la recharge.'))}
                   </div>
@@ -233,7 +244,7 @@ function ProductDetail() {
                   type="email"
                   placeholder="votre@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   error={errors.email}
                 />
               </div>
@@ -244,7 +255,7 @@ function ProductDetail() {
                   type="tel"
                   placeholder="+50943882372"
                   value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  onChange={(event) => setWhatsappNumber(event.target.value)}
                 />
               </div>
 
@@ -252,7 +263,7 @@ function ProductDetail() {
                 type="info"
                 title="Information"
                 message={product.requiresPlayerValidation
-                  ? 'Vérifiez attentivement votre Player ID avant de continuer'
+                  ? 'Les identifiants du compte seront vérifiés par FazerCards avant leur ajout au panier.'
                   : 'Les champs demandés proviennent directement de FazerCards.'}
               />
 
