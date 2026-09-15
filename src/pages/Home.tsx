@@ -1,4 +1,4 @@
-import { Sidebar, FeatureStrip, CategoryGrid, WhyChooseUs, HeroBanner } from '@/components'
+import { Sidebar, FeatureStrip, CategoryGrid, FeaturedGames, WhyChooseUs, HeroBanner } from '@/components'
 import { ShieldCheck, Wallet, Clock3 } from 'lucide-react'
 
 function Home() {
@@ -59,6 +59,10 @@ function Home() {
         </div>
 
         <WhyChooseUs />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <FeaturedGames />
       </div>
 
       {/* How It Works */}
