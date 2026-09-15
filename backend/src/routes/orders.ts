@@ -22,10 +22,9 @@ async function validateIfRequired(
   categoryId: string,
   fields: Record<string, unknown>
 ): Promise<{ required: boolean; playerName?: string | null; region?: string | null }> {
-  if (Object.keys(fields).length === 0) return { required: false }
-
-  // This lookup is deliberately made only on the purchase path. Catalogue
-  // loading never depends on getPlayerValidationCatalog().
+  // Resolve the canonical validation category even when the client sends no
+  // fields. A client must never be able to bypass validation with an empty
+  // payload when the selected FazerCards game requires account identifiers.
   const validationCategory = await fazer.getValidationCategoryForTopup(categoryId)
 
   if (!validationCategory || validationCategory.fields.length === 0) {
