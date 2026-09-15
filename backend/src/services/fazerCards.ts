@@ -228,13 +228,70 @@ export async function getTopupOffers(categoryId: string): Promise<FazerTopupOffe
  * Get the dynamic list of games/categories that support Player ID validation.
  * Never hard-code category IDs or field names: FazerCards owns this catalog.
  */
-export async function getPlayerValidationCatalog(): Promise<FazerValidationCategory[]> {
-  const response = await fazerRequest<FazerValidationCatalogResponse>(
-    'GET',
-    '/topups/validate-id'
-  )
+const VALIDATION_CATALOG_CACHE_TTL = 5 * 60 * 1000
+let validationCatalogCache: { items: FazerValidationCategory[]; expiresAt: number } | undefined
+let validationCatalogRequest: Promise<FazerValidationCategory[]> | undefined
 
-  return response.items
+export async function getPlayerValidationCatalog(): Promise<FazerValidationCategory[]> {
+  if (validationCatalogCache && validationCatalogCache.expiresAt > Date.now()) {
+    return validationCatalogCache.items
+  }
+
+  if (!validationCatalogRequest) {
+    validationCatalogRequest = fazerRequest<FazerValidationCatalogResponse>(
+      'GET',
+      '/topups/validate-id'
+    )
+      .then((response) => {
+        validationCatalogCache = {
+          items: response.items,
+          expiresAt: Date.now() + VALIDATION_CATALOG_CACHE_TTL,
+        }
+        return response.items
+      })
+      .finally(() => {
+        validationCatalogRequest = undefined
+      })
+  }
+
+  return validationCatalogRequest
+}
+
+function normalizeValidationKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[()_\\-]/g, ' ')
+    .replace(/\\b(global|exclusive|promo|special)\\b/g, ' ')
+    .replace(/\\s+/g, ' ')
+    .trim()
+}
+
+export async function getValidationCategoryForTopup(
+  categoryId: string,
+  categoryName?: string
+): Promise<FazerValidationCategory | undefined> {
+  const validationCategories = await getPlayerValidationCatalog()
+  const normalizedId = normalizeValidationKey(categoryId)
+  const normalizedName = normalizeValidationKey(categoryName || '')
+
+  const exact = validationCategories.find((category) =>
+    category.category_id === categoryId || normalizeValidationKey(category.category_id) === normalizedName
+  )
+  if (exact) return exact
+
+  return validationCategories
+    .map((category) => ({
+      category,
+      key: normalizeValidationKey(category.category_id),
+      nameKey: normalizeValidationKey(category.name),
+    }))
+    .filter(({ key, nameKey }) => [key, nameKey].some((candidate) =>
+      candidate === normalizedId ||
+      candidate === normalizedName ||
+      normalizedId.startsWith(candidate + ' ') ||
+      normalizedName.startsWith(candidate + ' ')
+    ))
+    .sort((left, right) => Math.max(right.key.length, right.nameKey.length) - Math.max(left.key.length, left.nameKey.length))[0]?.category
 }
 
 /**
@@ -251,9 +308,30 @@ export async function validatePlayer(
     throw error
   }
 
+  const validationCategory = await getValidationCategoryForTopup(categoryId)
+  if (!validationCategory || validationCategory.fields.length === 0) {
+    const error = new Error('FazerCards has no account validation system for this game') as FazerApiError
+    error.statusCode = 422
+    error.status = 422
+    throw error
+  }
+
+  const acceptedKeys = new Set(
+    validationCategory.fields.map((field) => field.key).filter((key): key is string => Boolean(key))
+  )
+  const validationFields = Object.fromEntries(
+    Object.entries(fields).filter(([key]) => acceptedKeys.has(key))
+  )
+  if (Object.keys(validationFields).length === 0) {
+    const error = new Error('The required FazerCards account identifiers are missing') as FazerApiError
+    error.statusCode = 422
+    error.status = 422
+    throw error
+  }
+
   const request: FazerPlayerValidationRequest = {
-    category_id: categoryId,
-    fields,
+    category_id: validationCategory.category_id,
+    fields: validationFields,
   }
 
   const response = await fazerRequest<FazerPlayerValidationResponse>(
