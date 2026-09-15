@@ -1,6 +1,15 @@
-import { Sidebar, FeatureStrip, CategoryGrid, WhyChooseUs, HeroBanner } from '@/components'
-import { FazerHomeCatalog } from '@/components/FazerHomeCatalog'
-import { ShieldCheck, Wallet, Clock3 } from 'lucide-react'
+import {
+  Sidebar,
+  FeatureStrip,
+  CategoryGrid,
+  WhyChooseUs,
+  HeroSection,
+  FeaturedGame,
+  PopularOffers,
+  CatalogPreview,
+  BenefitsSection,
+  Trust,
+} from '@/components'
 
 function Home() {
   return (
@@ -9,46 +18,13 @@ function Home() {
         <Sidebar />
 
         <div className="min-w-0 flex-1">
-          <HeroBanner />
+          <HeroSection />
         </div>
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mt-6 overflow-hidden rounded-2xl border border-white/[0.06]">
           <FeatureStrip />
-        </div>
-      </div>
-
-      {/* Trust & payment strip — signals credibility early, important for a payment site */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-white/[0.06] bg-amical-dark-secondary/40 p-4 sm:grid-cols-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amical-accent/15 text-amical-accent">
-              <Wallet size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">MonCash & PayPal</p>
-              <p className="text-xs text-gray-400">Moyens de paiement acceptés</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amical-orange/15 text-amical-orange">
-              <Clock3 size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Livraison rapide</p>
-              <p className="text-xs text-gray-400">Après vérification du paiement</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-500/15 text-green-400">
-              <ShieldCheck size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Produits officiels FazerCards</p>
-              <p className="text-xs text-gray-400">Catalogue vérifié et à jour</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -62,8 +38,18 @@ function Home() {
         <WhyChooseUs />
       </div>
 
-      {/* Real FazerCards catalog, loaded live - see FazerHomeCatalog */}
-      <FazerHomeCatalog />
+      {/* Free Fire — flagship category, curated offers pulled live from FazerCards */}
+      <FeaturedGame />
+
+      {/* Popular offers across the whole catalog (backend-flagged, region-aware) */}
+      <PopularOffers />
+
+      {/* Small, honest taste of the full catalog + a link to /products for the rest */}
+      <CatalogPreview />
+
+      <BenefitsSection />
+
+      <Trust />
 
       {/* How It Works */}
       <section id="how-it-works" className="scroll-mt-24 bg-amical-dark-secondary px-4 py-20">

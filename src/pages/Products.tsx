@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button, Card, Input, LoadingSpinner } from '@/components'
 import { productsService } from '@/services/productsService'
@@ -16,6 +16,7 @@ function Products() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { currency } = useAppContext()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [categories, setCategories] = useState<CatalogViewItem[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -44,7 +45,6 @@ function Products() {
           loadState: 'loading' as const,
         }))
         setCategories(initialCategories)
-        setSelectedCategoryId('')
         setLoading(false)
 
         void productsService.getCatalogWithProducts(catalog, (update) => {
@@ -78,6 +78,31 @@ function Products() {
       active = false
     }
   }, [t])
+
+  // Keep the selected category in sync with `?category=` in the URL. Links
+  // from the header, sidebar, and homepage sections point at a specific
+  // category (e.g. /products?category=free_fire_latam) and expect this page
+  // to open pre-filtered instead of silently showing the unfiltered "all
+  // catalogs" view — which is what happened before this page read the param.
+  useEffect(() => {
+    const requestedCategoryId = searchParams.get('category') || ''
+
+    if (!requestedCategoryId) {
+      setSelectedCategoryId('')
+      return
+    }
+
+    if (categories.length === 0) return // wait for the catalog to finish loading
+
+    const exists = categories.some((category) => category.category.category_id === requestedCategoryId)
+    setSelectedCategoryId(exists ? requestedCategoryId : '')
+
+    if (exists) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`catalog-${requestedCategoryId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }, [searchParams, categories])
 
   const retryCategory = async (categoryId: string) => {
     setCategories((current) => current.map((category) =>
@@ -138,17 +163,13 @@ function Products() {
   )
 
   const selectCategory = (categoryId: string) => {
-    setSelectedCategoryId(categoryId)
+    setSearchParams(categoryId ? { category: categoryId } : {}, { replace: true })
+
     if (!categoryId) {
       window.requestAnimationFrame(() => {
         document.getElementById('all-catalogs')?.scrollIntoView({ behavior: 'smooth' })
       })
-      return
     }
-
-    window.requestAnimationFrame(() => {
-      document.getElementById(`catalog-${categoryId}`)?.scrollIntoView({ behavior: 'smooth' })
-    })
   }
 
   if (loading) {
