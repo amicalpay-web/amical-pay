@@ -17,6 +17,7 @@ const categories = [
     sub: 'Cartes cadeaux & Solde',
     to: '/products?category=steam',
     icon: Gamepad2,
+    image: '/catalogs/steam.jpg',
     accent: 'from-amical-accent/30 to-transparent',
   },
   {
@@ -24,6 +25,7 @@ const categories = [
     sub: 'Cartes cadeaux & Abonnements',
     to: '/products?category=playstation',
     icon: Joystick,
+    image: '/catalogs/playstation.jpg',
     accent: 'from-blue-500/30 to-transparent',
   },
   {
@@ -31,6 +33,7 @@ const categories = [
     sub: 'Cartes cadeaux & Abonnements',
     to: '/products?category=xbox',
     icon: Box,
+    image: '/catalogs/xbox.jpg',
     accent: 'from-green-500/30 to-transparent',
   },
   {
@@ -38,13 +41,14 @@ const categories = [
     sub: 'Robux & Cartes cadeaux',
     to: '/products?category=roblox',
     icon: Puzzle,
+    image: '/catalogs/roblox.jpg',
     accent: 'from-purple-500/30 to-transparent',
   },
 ]
 
 export function CategoryGrid() {
-  // Real category artwork pulled from the FazerCards catalog (same API the
-  // rest of the app already uses) — matched by name, not scraped.
+  // Category artwork is matched with live catalogue data when local artwork
+  // is not available.
   const [categoryImages, setCategoryImages] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -103,9 +107,9 @@ export function CategoryGrid() {
           to={categories[0].to}
           className="group relative col-span-2 flex min-h-[9rem] flex-col justify-end overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#241a3a] via-[#1a1030] to-amical-dark p-4 transition hover:border-amical-orange/50 sm:col-span-1 lg:col-span-1"
         >
-          {categoryImages['Free Fire'] && (
+          {(categories[0].image || categoryImages['Free Fire']) && (
             <img
-              src={categoryImages['Free Fire']}
+              src={categories[0].image || categoryImages['Free Fire']}
               alt=""
               className="absolute inset-0 h-full w-full object-cover opacity-40 transition group-hover:opacity-55"
             />
@@ -117,8 +121,8 @@ export function CategoryGrid() {
           <ArrowRight size={16} className="absolute right-3 top-3 text-gray-300 transition group-hover:text-white" />
         </Link>
 
-        {categories.slice(1).map(({ label, sub, to, icon: Icon, accent }) => {
-          const image = categoryImages[label]
+        {categories.slice(1).map(({ label, sub, to, icon: Icon, image: localImage, accent }) => {
+          const image = localImage || categoryImages[label]
           return (
             <Link
               key={label}

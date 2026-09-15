@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChevronDown,
+  Home as HomeIcon,
+  LayoutGrid,
   Menu,
+  Search,
+  ShoppingBag,
   X,
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
@@ -14,6 +18,8 @@ export interface HeaderLabels {
   home: string
   overview: string
   catalog: string
+  catalogues: string
+  products: string
   freeFire: string
   finance: string
   statistics: string
@@ -46,13 +52,17 @@ export interface HeaderLabels {
   howItWorks: string
   trackOrder: string
   contact: string
+  searchPlaceholder: string
+  searchSubmit: string
 }
 
 const translations: Record<'fr' | 'en', HeaderLabels> = {
   fr: {
     home: 'Accueil',
     overview: 'Vue d’ensemble',
-    catalog: 'Produits',
+    catalog: 'Catalogues',
+    catalogues: 'Catalogues',
+    products: 'Produits',
     freeFire: 'Free Fire',
     finance: 'Finance',
     statistics: 'Statistiques',
@@ -85,11 +95,15 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
     howItWorks: 'Comment ça marche',
     trackOrder: 'Suivre ma commande',
     contact: 'Contact',
+    searchPlaceholder: 'Rechercher un produit, une marque ou une catégorie…',
+    searchSubmit: 'Lancer la recherche',
   },
   en: {
     home: 'Home',
     overview: 'Overview',
-    catalog: 'Products',
+    catalog: 'Catalogues',
+    catalogues: 'Catalogues',
+    products: 'Products',
     freeFire: 'Free Fire',
     finance: 'Finance',
     statistics: 'Statistics',
@@ -122,6 +136,8 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
     howItWorks: 'How it works',
     trackOrder: 'Track order',
     contact: 'Contact',
+    searchPlaceholder: 'Search a product, brand, or category…',
+    searchSubmit: 'Search',
   },
 }
 
@@ -134,6 +150,7 @@ function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState(() => new URLSearchParams(location.search).get('q') || '')
   const { user, profile, signOut } = useAuth()
   const labels = useMemo(() => translations[language === 'en' ? 'en' : 'fr'], [language])
   const isAuthenticated = Boolean(user)
@@ -142,6 +159,10 @@ function Header() {
   useEffect(() => {
     setMobileOpen(false)
   }, [location.pathname, location.search, location.hash])
+
+  useEffect(() => {
+    setSearchTerm(new URLSearchParams(location.search).get('q') || '')
+  }, [location.search])
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
@@ -153,6 +174,12 @@ function Header() {
   const handleLogout = async () => {
     const result = await signOut()
     if (!result.error) navigate('/')
+  }
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const query = searchTerm.trim()
+    navigate(query ? `/products?q=${encodeURIComponent(query)}` : '/products')
   }
 
   return (
@@ -171,6 +198,30 @@ function Header() {
         <Link to="/" aria-label="Amical Pay - accueil" className="shrink-0">
           <Brand />
         </Link>
+
+        <nav className="ml-5 hidden items-center gap-1 lg:flex" aria-label={labels.mainMenu}>
+          <Link
+            to="/"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/[0.05] hover:text-white"
+          >
+            <HomeIcon size={16} />
+            {labels.home}
+          </Link>
+          <Link
+            to="/catalogues"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/[0.05] hover:text-amical-orange"
+          >
+            <LayoutGrid size={16} />
+            {labels.catalogues}
+          </Link>
+          <Link
+            to="/products"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-gray-300 transition hover:bg-white/[0.05] hover:text-white"
+          >
+            <ShoppingBag size={16} />
+            {labels.products}
+          </Link>
+        </nav>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <label className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-amical-orange/40">
@@ -194,6 +245,28 @@ function Header() {
             onLogout={handleLogout}
           />
         </div>
+      </div>
+
+      <div className="border-t border-white/[0.06] bg-black/20">
+        <form onSubmit={handleSearch} className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2.5 sm:px-5 lg:px-8">
+          <Search size={17} className="shrink-0 text-amical-orange" aria-hidden="true" />
+          <label htmlFor="global-product-search" className="sr-only">{labels.search}</label>
+          <input
+            id="global-product-search"
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder={labels.searchPlaceholder}
+            className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
+          />
+          <button
+            type="submit"
+            aria-label={labels.searchSubmit}
+            className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-amical-orange/50 hover:text-white"
+          >
+            {labels.search}
+          </button>
+        </form>
       </div>
 
       <MobileMenu

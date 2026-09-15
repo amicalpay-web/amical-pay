@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Home from '@/pages/Home'
+import Catalogues from '@/pages/Catalogues'
 import Products from '@/pages/Products'
 import ProductDetail from '@/pages/ProductDetail'
 import Checkout from '@/pages/Checkout'
@@ -15,6 +16,7 @@ function Router() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/catalogues" element={<Catalogues />} />
       <Route path="/products" element={<Products />} />
       <Route path="/productspage" element={<Products />} />
       <Route path="/products/:id" element={<ProductDetail />} />

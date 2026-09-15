@@ -5,7 +5,7 @@ import { Gamepad2, Flame, ChevronDown } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button, Card, LoadingSpinner } from '@/components'
 import { productsService } from '@/services/productsService'
-import { FazerCatalogItem } from '@/types'
+import type { FazerCatalogItem, Product } from '@/types'
 
 type CategoryLoadState = 'idle' | 'loading' | 'loaded' | 'error'
 
@@ -44,6 +44,7 @@ function Products() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedCategoryId = searchParams.get('category') || ''
+  const searchQuery = searchParams.get('q')?.trim() || ''
   const initialRequestedCategoryId = useRef(requestedCategoryId)
   const { t } = useTranslation()
   const { currency } = useAppContext()
@@ -51,11 +52,47 @@ function Products() {
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
   const [loadingCatalog, setLoadingCatalog] = useState(true)
   const [error, setError] = useState('')
+  const [searchResults, setSearchResults] = useState<Product[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
   const mountedRef = useRef(true)
 
   useEffect(() => () => {
     mountedRef.current = false
   }, [])
+
+  useEffect(() => {
+    let active = true
+
+    if (!searchQuery) {
+      setSearchResults([])
+      setSearchLoading(false)
+      setSearchError('')
+      return () => {
+        active = false
+      }
+    }
+
+    setSearchLoading(true)
+    setSearchError('')
+    productsService.searchProducts(searchQuery)
+      .then((products) => {
+        if (active) setSearchResults(products)
+      })
+      .catch((loadError: unknown) => {
+        if (active) {
+          setSearchResults([])
+          setSearchError(loadError instanceof Error ? loadError.message : 'Impossible de lancer la recherche.')
+        }
+      })
+      .finally(() => {
+        if (active) setSearchLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [searchQuery])
 
   useEffect(() => {
     let active = true
@@ -166,6 +203,81 @@ function Products() {
         <LoadingSpinner fullScreen />
         <p className="sr-only">{t('products.catalogLoading')}</p>
       </div>
+    )
+  }
+
+  if (searchQuery) {
+    return (
+      <main className="min-h-screen bg-amical-dark px-4 py-10 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-10">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-amical-orange">Recherche Amical Pay</p>
+            <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">
+              Résultats pour « {searchQuery} »
+            </h1>
+            <p className="text-gray-400">
+              Recherchez dans les produits et les catégories disponibles.
+            </p>
+          </header>
+
+          {searchLoading && (
+            <Card>
+              <LoadingSpinner size="sm" />
+              <p className="mt-3 text-center text-gray-400">Recherche en cours…</p>
+            </Card>
+          )}
+
+          {!searchLoading && searchError && (
+            <Card>
+              <p className="text-red-300" role="alert">{searchError}</p>
+            </Card>
+          )}
+
+          {!searchLoading && !searchError && searchResults.length === 0 && (
+            <Card>
+              <p className="text-center text-gray-400">Aucun produit ne correspond à votre recherche.</p>
+            </Card>
+          )}
+
+          {!searchLoading && !searchError && searchResults.length > 0 && (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {searchResults.map((product) => (
+                <Card key={product.id} className="flex flex-col">
+                  {product.image && (
+                    <img src={product.image} alt="" className="mb-4 h-32 w-full rounded-lg object-cover" />
+                  )}
+                  <div className="flex-1">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-amical-orange">
+                      {product.categoryName || 'Catalogue'}
+                    </p>
+                    <h2 className="text-xl font-bold text-white">{product.name}</h2>
+                    <p className="mt-2 text-sm text-gray-400">{product.description}</p>
+                  </div>
+                  <div className="mt-5 border-t border-amical-dark-tertiary pt-4">
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs text-gray-400">{t('products.price')}</p>
+                        <p className="text-2xl font-bold text-amical-orange">
+                          {currency === 'USD' ? '$' : 'G'}
+                          {(currency === 'USD' ? product.sellingPriceUsd : product.sellingPriceHtg).toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-green-400">{t('products.inStock')}</p>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => navigate(`/products/${encodeURIComponent(product.id)}`)}
+                      disabled={product.availability === 'out_of_stock'}
+                    >
+                      {t('common.buy')}
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
     )
   }
 
@@ -348,7 +460,7 @@ function Products() {
                 </p>
                 <p className="hidden text-xs text-gray-500 sm:block">{t('products.gameSelectionHint')}</p>
               </div>
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {selectedCategory.products.map((product) => (
                   <Card key={product.id} className="flex flex-col">
                     {product.image && (

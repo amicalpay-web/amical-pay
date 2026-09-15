@@ -16,7 +16,7 @@ const isFreeFireCategory = (category: CatalogViewItem) =>
   category.category.category_name?.toLowerCase().includes('free fire') ?? false
 
 /**
- * Real FazerCards catalog embedded on the home page.
+ * Live catalogue component kept for focused catalogue views.
  *
  * This intentionally reuses productsService as-is (getCatalog /
  * getCatalogWithProducts / retryCategoryProducts) instead of duplicating
@@ -362,7 +362,7 @@ export function FazerHomeCatalog() {
                     )}
 
                     {category.loadState === 'loaded' && filteredProducts.length > 0 && (
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         {filteredProducts.map((product) => (
                           <Card key={product.id} className="flex flex-col">
                             {product.image && (

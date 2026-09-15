@@ -1,5 +1,4 @@
 import { Sidebar, FeatureStrip, CategoryGrid, WhyChooseUs, HeroBanner } from '@/components'
-import { FazerHomeCatalog } from '@/components/FazerHomeCatalog'
 import { ShieldCheck, Wallet, Clock3 } from 'lucide-react'
 
 function Home() {
@@ -61,9 +60,6 @@ function Home() {
 
         <WhyChooseUs />
       </div>
-
-      {/* Live catalog, loaded live - see FazerHomeCatalog */}
-      <FazerHomeCatalog />
 
       {/* How It Works */}
       <section id="how-it-works" className="scroll-mt-24 bg-amical-dark-secondary px-4 py-20">

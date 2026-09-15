@@ -91,6 +91,10 @@ export function MobileMenu({
   ]
 
   const catalogItems = resolveCatalogMenuItems(liveCategories)
+  const primaryCatalogItems = [
+    { to: '/catalogues', label: labels.catalogues, icon: Grid3x3 },
+    { to: '/products', label: labels.products, icon: Package },
+  ]
   const financeItems = [
     { to: '/account#balance', label: labels.balance, icon: WalletCards },
   ]
@@ -174,6 +178,19 @@ export function MobileMenu({
         <nav className="px-4 py-5" aria-label={labels.catalog}>
           <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">{labels.catalog}</p>
           <div className="space-y-2">
+              {primaryCatalogItems.map(({ to, label, icon: Icon }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={onClose}
+                  className="group flex items-center gap-3 rounded-2xl border border-amical-orange/25 bg-amical-orange/[0.06] px-4 py-3.5 text-[15px] font-semibold text-white transition hover:border-amical-orange/50 hover:bg-amical-orange/10"
+                >
+                  <Icon size={19} strokeWidth={1.8} className="shrink-0 text-amical-orange" />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  <ChevronRight size={18} className="shrink-0 text-amical-orange transition group-hover:translate-x-0.5" />
+                </Link>
+              ))}
+
             {catalogItems.map((item) => {
               const Icon = item.icon
               const label = labels[item.labelKey]
@@ -195,20 +212,11 @@ export function MobileMenu({
               )
             })}
 
-            <Link
-              to="/products"
-              onClick={onClose}
-              className="group flex items-center gap-3 rounded-2xl border border-amical-orange/25 bg-amical-orange/[0.06] px-4 py-3.5 text-[15px] font-semibold text-white transition hover:border-amical-orange/50 hover:bg-amical-orange/10"
-            >
-              <Grid3x3 size={19} strokeWidth={1.8} className="shrink-0 text-amical-orange" />
-              <span className="min-w-0 flex-1 truncate">
-                {labels.catalog}
-                {catalogTotal > 0 && (
-                  <span className="ml-1.5 font-normal text-gray-400">({catalogTotal})</span>
-                )}
-              </span>
-              <ChevronRight size={18} className="shrink-0 text-amical-orange transition group-hover:translate-x-0.5" />
-            </Link>
+            {catalogTotal > 0 && (
+              <p className="px-2 text-xs text-gray-500">
+                {catalogTotal} catalogues disponibles
+              </p>
+            )}
 
             {catalogItems.length === 0 && liveCategories.length === 0 && (
               <p className="flex items-center gap-2 px-2 text-xs text-gray-500">
