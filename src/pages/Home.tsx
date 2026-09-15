@@ -38,7 +38,7 @@ function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { step: 1, title: 'Choisir', desc: 'Sélectionnez votre catégorie et votre offre' },
+              { step: 1, title: 'Choisir', desc: 'Sélectionnez votre région et votre offre' },
               { step: 2, title: 'Valider', desc: 'Entrez votre Player ID Free Fire' },
               { step: 3, title: 'Payer', desc: 'Effectuez le paiement de manière sécurisée' },
               { step: 4, title: 'Recevoir', desc: 'Recevez vos Diamonds instantanément' },
