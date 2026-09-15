@@ -37,6 +37,18 @@ function Checkout() {
 
   const item = cartItems[0]
   const price = currency === 'USD' ? item.product.sellingPriceUsd : item.product.sellingPriceHtg
+  const validationKeys = new Set(
+    (item.product.fazerValidationFields || [])
+      .map((field) => field.key)
+      .filter((key): key is string => Boolean(key))
+  )
+  const accountFields = item.accountFields || Object.fromEntries(
+    Object.entries(item.fazerFields || {}).filter(([key]) => validationKeys.has(key))
+  )
+  const rechargeFields = Object.entries(item.fazerFields || {})
+    .filter(([key]) => !validationKeys.has(key))
+
+  const fieldLabel = (key: string) => key.replace(/[_-]+/g, ' ')
 
   const handlePlaceOrder = async () => {
     setLoading(true)
@@ -45,7 +57,8 @@ function Checkout() {
     try {
       const order = await ordersService.createOrder({
         product: item.product,
-        playerId: item.playerId,
+        playerId: item.playerId || accountFields.player_id || '',
+        accountFields,
         whatsappNumber: item.whatsappNumber || '',
         email: item.email || '',
         region: item.product.region,
@@ -67,7 +80,9 @@ function Checkout() {
       navigate('/order-confirmation/' + order.orderNumber)
     } catch (requestError) {
       console.error('Order creation or payment failed:', requestError)
-      setError('Le paiement n’a pas pu être démarré. Vérifiez votre connexion puis réessayez.')
+      setError(requestError instanceof Error
+        ? requestError.message
+        : 'Le paiement n’a pas pu être démarré. Vérifiez votre connexion puis réessayez.')
     } finally {
       setLoading(false)
     }
@@ -85,18 +100,35 @@ function Checkout() {
               <span className="text-gray-400">Produit</span>
               <span className="text-white font-semibold">{item.product.name}</span>
             </div>
-            {item.playerId && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Player ID</span>
-                <span className="text-white font-semibold">{item.playerId}</span>
+
+            {Object.keys(accountFields).length > 0 && (
+              <div className="rounded-lg border border-amical-orange/30 bg-amical-orange/5 p-4">
+                <p className="text-sm font-semibold text-amical-orange">Identifiants du compte vérifiés</p>
+                <div className="mt-3 space-y-2">
+                  {Object.entries(accountFields).map(([key, value]) => (
+                    <div className="flex justify-between gap-4" key={key}>
+                      <span className="text-gray-400">{fieldLabel(key)}</span>
+                      <span className="text-white font-semibold text-right">{value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            {item.fazerFields && Object.entries(item.fazerFields).map(([key, value]) => (
-              <div className="flex justify-between gap-4" key={key}>
-                <span className="text-gray-400">{key}</span>
-                <span className="text-white font-semibold text-right">{value}</span>
+
+            {rechargeFields.length > 0 && (
+              <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm font-semibold text-white">Champs de recharge</p>
+                <div className="mt-3 space-y-2">
+                  {rechargeFields.map(([key, value]) => (
+                    <div className="flex justify-between gap-4" key={key}>
+                      <span className="text-gray-400">{fieldLabel(key)}</span>
+                      <span className="text-white font-semibold text-right">{value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+
             <div className="flex justify-between">
               <span className="text-gray-400">Région</span>
               <span className="text-white font-semibold">{item.product.region}</span>
