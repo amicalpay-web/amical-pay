@@ -1,11 +1,14 @@
-import { Router, Request, Response, NextFunction } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import * as fazer from '../services/fazerCards.js'
+import { AuthRequest } from '../middleware/auth.js'
+import {
+  getOrderByNumber as getPersistedOrderByNumber,
+  getOrdersByUserId,
+  insertOrder,
+  updateOrder,
+} from '../services/supabase.js'
 
 const router = Router()
-
-// Temporary persistence retained to avoid changing the existing storage layer.
-// Render restarts still require the project's real database/storage integration.
-export const mockOrders: Record<string, any> = {}
 
 function generateOrderNumber(): string {
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '')
@@ -41,7 +44,7 @@ async function validateIfRequired(
 // POST /api/orders
 // Creates the local order after validation, but does not execute the supplier
 // order until MonCash confirms payment.
-router.post('/', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const {
       product_id,
@@ -85,9 +88,14 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     const validation = await validateIfRequired(fazer_category_id.trim(), fields)
     const parsedTotalPrice = Number(total_price)
     const orderNumber = generateOrderNumber()
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required to create an order' })
+      return
+    }
+
     const order = {
-      id: Math.random().toString(36).substr(2, 9),
       order_number: orderNumber,
+      user_id: req.user.id,
       product_id,
       player_id: typeof player_id === 'string' ? player_id : '',
       whatsapp_number,
@@ -109,8 +117,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       updated_at: new Date().toISOString(),
     }
 
-    mockOrders[orderNumber] = order
-    res.status(201).json(order)
+    const persistedOrder = await insertOrder(order)
+    res.status(201).json(persistedOrder)
   } catch (error) {
     next(error)
   }
@@ -118,41 +126,51 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
 // Execute the supplier order once a payment is verified. This is exported for
 // the MonCash webhook and remains idempotent for repeated callbacks.
-export async function fulfillFazerOrder(orderNumber: string): Promise<any> {
-  const order = mockOrders[orderNumber]
+export async function fulfillFazerOrder(orderNumber: string): Promise<Record<string, unknown>> {
+  const order = await getPersistedOrderByNumber(orderNumber)
   if (!order) throw new Error(`Order not found: ${orderNumber}`)
   if (order.fazer_order_id) return order
 
+  const categoryId = String(order.fazer_category_id || '')
+  const offerId = String(order.fazer_offer_id || '')
+  const fields = (order.fazer_fields && typeof order.fazer_fields === 'object')
+    ? order.fazer_fields as Record<string, unknown>
+    : {}
+
   const fazerOrder = await fazer.createOrder(
-    order.fazer_category_id,
-    order.fazer_offer_id,
-    order.fazer_fields,
-    `amicalpay-${order.order_number}`,
+    categoryId,
+    offerId,
+    fields,
+    `amicalpay-${String(order.order_number)}`,
     order.fazer_validation_status === 'confirmed'
-      ? Object.keys(order.fazer_fields).map((key) => ({ key }))
+      ? Object.keys(fields).map((key) => ({ key }))
       : [],
   )
 
-  order.fazer_order_id = fazerOrder.order_id
-  order.fazer_order_status = fazerOrder.order_status
-  order.status = 'processing'
-  order.updated_at = new Date().toISOString()
-  return order
+  return updateOrder(orderNumber, {
+    fazer_order_id: fazerOrder.order_id,
+    fazer_order_status: fazerOrder.order_status,
+    status: 'processing',
+    updated_at: new Date().toISOString(),
+  })
 }
 
-router.get('/player/:playerId', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/me', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const orders = Object.values(mockOrders)
-      .filter((order) => order.player_id === req.params.playerId)
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' })
+      return
+    }
+    const orders = await getOrdersByUserId(req.user.id)
     res.json(orders)
   } catch (error) {
     next(error)
   }
 })
 
-router.get('/:orderNumber', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:orderNumber', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const order = mockOrders[req.params.orderNumber]
+    const order = await getPersistedOrderByNumber(req.params.orderNumber)
     if (!order) {
       res.status(404).json({
         error: 'Order not found',
