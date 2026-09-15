@@ -2,6 +2,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useState, useEffect } from 'react'
 import { Button, Card, Input } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 import { ordersService } from '@/services/ordersService'
 import { Order } from '@/types'
 
@@ -49,6 +50,12 @@ function TrackOrder() {
 
   return (
     <div className="min-h-screen bg-amical-dark py-12 px-4">
+      <SeoHead
+        title="Suivre ma commande"
+        description="Suivez en temps réel le statut de votre commande Amical Pay avec votre numéro de commande."
+        path="/track-order"
+      />
+
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">Suivre votre commande</h1>
 
