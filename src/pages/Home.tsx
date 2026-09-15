@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button } from '@/components'
 import { regions } from '@/data/regions'
+import type { Region } from '@/types'
 
 function Home() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { region, setRegion } = useAppContext()
 
-  const handleRegionSelect = (selectedRegion: string) => {
-    setRegion(selectedRegion as any)
+  const handleRegionSelect = (selectedRegion: Region) => {
+    setRegion(selectedRegion)
     navigate('/products')
   }
 

@@ -4,6 +4,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  loadingText?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -11,6 +12,7 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   isLoading = false,
+  loadingText = 'Loading...',
   disabled,
   children,
   className = '',
@@ -38,7 +40,7 @@ export const Button: React.FC<ButtonProps> = ({
       className={finalClass}
       {...props}
     >
-      {isLoading ? 'Loading...' : children}
+      {isLoading ? loadingText : children}
     </button>
   );
 };

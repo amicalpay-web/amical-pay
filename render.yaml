@@ -48,12 +48,12 @@ projects:
                 value: https://api.amicalpay.com/api/webhook/moncash
               - key: MONCASH_ALERT_URL
                 value: https://amicalpay.com/payment-success
-               - key: SUPABASE_URL
-                 value: https://semhrtqkjouaieozsiab.supabase.co
-               - key: SUPABASE_ANON_KEY
-                 sync: false
-               - key: SUPABASE_SERVICE_ROLE_KEY
-                 sync: false
+              - key: SUPABASE_URL
+                sync: false
+              - key: SUPABASE_ANON_KEY
+                sync: false
+              - key: SUPABASE_SERVICE_ROLE_KEY
+                sync: false
 
           # Frontend application
           - type: web
@@ -73,7 +73,7 @@ projects:
             envVars:
               - key: VITE_API_URL
                 value: https://api.amicalpay.com
-               - key: VITE_SUPABASE_URL
-                 value: https://semhrtqkjouaieozsiab.supabase.co
-               - key: VITE_SUPABASE_ANON_KEY
-                 sync: false
+              - key: VITE_SUPABASE_URL
+                sync: false
+              - key: VITE_SUPABASE_ANON_KEY
+                sync: false

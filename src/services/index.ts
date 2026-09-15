@@ -1,49 +1,5 @@
 import { Currency, Language } from '@/types';
-import { supabase } from './supabase'
-
-export const authService = {
-  isAuthenticated: async (): Promise<boolean> => {
-    if (!supabase) return false
-    const { data } = await supabase.auth.getSession()
-    return Boolean(data.session)
-  },
-
-  login: async (email: string, password: string) => {
-    if (!supabase) throw new Error('Supabase Auth is not configured')
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error || !data.user || !data.session) throw new Error(error?.message || 'Invalid credentials')
-    localStorage.setItem('amical_auth_user', data.user.email || email)
-    window.dispatchEvent(new Event('amical-auth-changed'))
-    return { token: data.session.access_token, user: data.user }
-  },
-
-  signup: async (email: string, password: string) => {
-    if (!supabase) throw new Error('Supabase Auth is not configured')
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error || !data.user) throw new Error(error?.message || 'Could not create account')
-    if (data.session) {
-      localStorage.setItem('amical_auth_user', data.user.email || email)
-    }
-    window.dispatchEvent(new Event('amical-auth-changed'))
-    return data
-  },
-
-  getAccessToken: async (): Promise<string | undefined> => {
-    if (!supabase) return undefined
-    const { data } = await supabase.auth.getSession()
-    return data.session?.access_token
-  },
-
-  logout: async (): Promise<void> => {
-    if (supabase) {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-    }
-    localStorage.removeItem('amical_auth_token')
-    localStorage.removeItem('amical_auth_user')
-    window.dispatchEvent(new Event('amical-auth-changed'))
-  },
-};
+export { authService } from './authService'
 
 // Local storage preference service
 export const preferencesService = {

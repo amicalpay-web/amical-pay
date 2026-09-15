@@ -10,6 +10,7 @@ import TrackOrder from '@/pages/TrackOrder'
 import Account from '@/pages/Account'
 import FAQ from '@/pages/FAQ'
 import Support from '@/pages/Support'
+import Auth from '@/pages/Auth'
 
 function Router() {
   return (
@@ -23,6 +24,8 @@ function Router() {
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/track-order" element={<TrackOrder />} />
       <Route path="/account" element={<Account />} />
+      <Route path="/login" element={<Auth />} />
+      <Route path="/signup" element={<Auth />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/support" element={<Support />} />
       <Route path="*" element={<Home />} />

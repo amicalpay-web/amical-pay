@@ -1,6 +1,6 @@
 import { Order, OrderStatus, PaymentMethod, Product } from '@/types'
 import { productsService } from './productsService'
-import { authService } from './index'
+import { authService } from './authService'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 

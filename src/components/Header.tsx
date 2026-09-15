@@ -8,7 +8,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
-import { authService } from '@/services'
+import { useAuth } from '@/contexts/AuthContext'
 import logo from '@/assets/logo.svg'
 import { MobileMenu } from './MobileMenu'
 import { UserMenu } from './UserMenu'
@@ -110,18 +110,6 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
   },
 }
 
-function readStoredUserLabel(): string {
-  const rawUser = localStorage.getItem('amical_auth_user')
-  if (!rawUser) return 'Mon compte'
-
-  try {
-    const user = JSON.parse(rawUser) as { name?: string; email?: string }
-    return user.name || user.email || 'Mon compte'
-  } catch {
-    return 'Mon compte'
-  }
-}
-
 function Brand() {
   return (
     <span className="flex items-center gap-2.5">
@@ -136,30 +124,10 @@ function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [userLabel, setUserLabel] = useState('Mon compte')
+  const { user, profile, signOut } = useAuth()
   const labels = useMemo(() => translations[language === 'en' ? 'en' : 'fr'], [language])
-
-  useEffect(() => {
-    let active = true
-    const refreshAuth = async () => {
-      const authenticated = await authService.isAuthenticated()
-      if (!active) return
-      setIsAuthenticated(authenticated)
-      if (authenticated) setUserLabel(readStoredUserLabel())
-    }
-
-    void refreshAuth()
-    const handleAuthChange = () => void refreshAuth()
-    window.addEventListener('storage', handleAuthChange)
-    window.addEventListener('amical-auth-changed', handleAuthChange)
-
-    return () => {
-      active = false
-      window.removeEventListener('storage', handleAuthChange)
-      window.removeEventListener('amical-auth-changed', handleAuthChange)
-    }
-  }, [])
+  const isAuthenticated = Boolean(user)
+  const userLabel = profile?.display_name || user?.email || labels.account
 
   useEffect(() => {
     setMobileOpen(false)
@@ -173,11 +141,8 @@ function Header() {
   }, [mobileOpen])
 
   const handleLogout = async () => {
-    await authService.logout()
-    setIsAuthenticated(false)
-    setUserLabel('Mon compte')
-    window.dispatchEvent(new Event('amical-auth-changed'))
-    navigate('/')
+    const result = await signOut()
+    if (!result.error) navigate('/')
   }
 
   const navItems = [
@@ -248,8 +213,8 @@ function Header() {
             </div>
           ) : (
             <div className="hidden items-center gap-2 md:flex">
-              <Link to="/account" className="rounded-xl px-3 py-2 text-sm font-semibold text-gray-300 transition hover:text-white">{labels.login}</Link>
-              <Link to="/account" className="rounded-xl bg-amical-orange px-3.5 py-2 text-sm font-semibold text-white shadow-lg shadow-amical-orange/10 transition hover:bg-amical-orange-dark">{labels.signup}</Link>
+              <Link to="/login" className="rounded-xl px-3 py-2 text-sm font-semibold text-gray-300 transition hover:text-white">{labels.login}</Link>
+              <Link to="/signup" className="rounded-xl bg-amical-orange px-3.5 py-2 text-sm font-semibold text-white shadow-lg shadow-amical-orange/10 transition hover:bg-amical-orange-dark">{labels.signup}</Link>
             </div>
           )}
 
