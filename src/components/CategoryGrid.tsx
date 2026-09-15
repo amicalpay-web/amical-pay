@@ -107,9 +107,9 @@ export function CategoryGrid() {
           to={categories[0].to}
           className="group relative col-span-2 flex min-h-[9rem] flex-col justify-end overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#241a3a] via-[#1a1030] to-amical-dark p-4 transition hover:border-amical-orange/50 sm:col-span-1 lg:col-span-1"
         >
-          {(categories[0].image || categoryImages['Free Fire']) && (
+          {(categoryImages['Free Fire'] || categories[0].image) && (
             <img
-              src={categories[0].image || categoryImages['Free Fire']}
+              src={categoryImages['Free Fire'] || categories[0].image}
               alt=""
               className="absolute inset-0 h-full w-full object-cover opacity-40 transition group-hover:opacity-55"
             />
@@ -122,7 +122,7 @@ export function CategoryGrid() {
         </Link>
 
         {categories.slice(1).map(({ label, sub, to, icon: Icon, image: localImage, accent }) => {
-          const image = localImage || categoryImages[label]
+          const image = categoryImages[label] || localImage
           return (
             <Link
               key={label}
