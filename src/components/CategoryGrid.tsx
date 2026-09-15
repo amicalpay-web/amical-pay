@@ -47,8 +47,9 @@ const categories = [
 ]
 
 export function CategoryGrid() {
-  // Category artwork is matched with live catalogue data when local artwork
-  // is not available.
+  // Category artwork comes from the live FazerCards catalog whenever it is
+  // available. The local /catalogs/*.jpg files are only a fallback for the
+  // rare case where FazerCards has no image for that category yet.
   const [categoryImages, setCategoryImages] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -73,8 +74,8 @@ export function CategoryGrid() {
         setCategoryImages(images)
       })
       .catch(() => {
-        // Silently fall back to icons if the catalog can't be reached —
-        // the grid still works, just without artwork.
+        // Silently fall back to local artwork/icons if the catalog can't be
+        // reached — the grid still works, just without live artwork.
       })
 
     return () => {
@@ -83,8 +84,8 @@ export function CategoryGrid() {
   }, [])
 
   return (
-    <section className="px-4 py-10 sm:px-6">
-      <div className="mb-5 flex items-end justify-between">
+    <section className="px-4 py-8 sm:px-6">
+      <div className="mb-4 flex items-end justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold text-white">
             <Flame size={18} className="text-amical-orange" />
@@ -111,6 +112,7 @@ export function CategoryGrid() {
             <img
               src={categoryImages['Free Fire'] || categories[0].image}
               alt=""
+              loading="lazy"
               className="absolute inset-0 h-full w-full object-cover opacity-40 transition group-hover:opacity-55"
             />
           )}
@@ -133,6 +135,7 @@ export function CategoryGrid() {
                 <img
                   src={image}
                   alt=""
+                  loading="lazy"
                   className="absolute inset-0 h-full w-full object-cover opacity-35 transition group-hover:opacity-50"
                 />
               )}
