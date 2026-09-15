@@ -1,10 +1,5 @@
 import { FazerValidationField } from '@/types'
-
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
-
-function apiUrl(path: string): string {
-  return `${API_BASE_URL}${path}`
-}
+import { apiUrl } from './api'
 
 export interface PlayerValidationResult {
   status: 'success'
