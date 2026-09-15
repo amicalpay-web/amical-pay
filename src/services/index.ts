@@ -1,43 +1,47 @@
 import { Currency, Language } from '@/types';
+import { supabase } from './supabase'
 
-// Mock authentication service
 export const authService = {
-  // Check if user is authenticated (mock)
   isAuthenticated: async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const token = localStorage.getItem('amical_auth_token');
-        resolve(!!token);
-      }, 100);
-    });
+    if (!supabase) return false
+    const { data } = await supabase.auth.getSession()
+    return Boolean(data.session)
   },
 
-  // Login (mock)
-  login: async (email: string, password: string): Promise<{ token: string; user: any }> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (email && password) {
-          const token = 'mock_token_' + Math.random().toString(36).substr(2, 9);
-          localStorage.setItem('amical_auth_token', token);
-          resolve({
-            token,
-            user: { email, id: Math.random().toString(36).substr(2, 9) },
-          });
-        } else {
-          reject(new Error('Invalid credentials'));
-        }
-      }, 500);
-    });
+  login: async (email: string, password: string) => {
+    if (!supabase) throw new Error('Supabase Auth is not configured')
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error || !data.user || !data.session) throw new Error(error?.message || 'Invalid credentials')
+    localStorage.setItem('amical_auth_user', data.user.email || email)
+    window.dispatchEvent(new Event('amical-auth-changed'))
+    return { token: data.session.access_token, user: data.user }
   },
 
-  // Logout (mock)
+  signup: async (email: string, password: string) => {
+    if (!supabase) throw new Error('Supabase Auth is not configured')
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error || !data.user) throw new Error(error?.message || 'Could not create account')
+    if (data.session) {
+      localStorage.setItem('amical_auth_user', data.user.email || email)
+    }
+    window.dispatchEvent(new Event('amical-auth-changed'))
+    return data
+  },
+
+  getAccessToken: async (): Promise<string | undefined> => {
+    if (!supabase) return undefined
+    const { data } = await supabase.auth.getSession()
+    return data.session?.access_token
+  },
+
   logout: async (): Promise<void> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        localStorage.removeItem('amical_auth_token');
-        resolve();
-      }, 100);
-    });
+    if (supabase) {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    }
+    localStorage.removeItem('amical_auth_token')
+    localStorage.removeItem('amical_auth_user')
+    window.dispatchEvent(new Event('amical-auth-changed'))
   },
 };
 
