@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Youtube, Instagram, MessageCircle, Phone, Mail } from 'lucide-react'
+import { Youtube, Instagram, Phone, Mail } from 'lucide-react'
+import { FaTiktok, FaWhatsapp } from 'react-icons/fa6'
 import logo from '@/assets/logo.svg'
 
 const navLinks = [
@@ -11,10 +12,10 @@ const navLinks = [
 ]
 
 const socialLinks = [
-  { label: 'YouTube', icon: Youtube, href: 'https://youtube.com' },
-  { label: 'Instagram', icon: Instagram, href: 'https://instagram.com' },
-  { label: 'TikTok', icon: MessageCircle, href: 'https://tiktok.com' },
-  { label: 'WhatsApp Channel', icon: Phone, href: 'https://wa.me/50943882372' },
+  { label: 'YouTube', icon: Youtube, href: 'https://youtube.com/@amicalpay' },
+  { label: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/amicalpay' },
+  { label: 'TikTok', icon: FaTiktok, href: 'https://www.tiktok.com/@amicalpay' },
+  { label: 'WhatsApp Channel', icon: FaWhatsapp, href: 'https://whatsapp.com/channel/0029Vb8jdy2BKfhz0d6GtL1v' },
 ]
 
 export function Footer() {
