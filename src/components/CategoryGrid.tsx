@@ -26,7 +26,7 @@ const categories = [
     to: '/products?category=playstation',
     icon: Joystick,
     image: '/catalogs/playstation.jpg',
-    accent: 'from-blue-500/30 to-transparent',
+    accent: 'from-amical-violet/30 to-transparent',
   },
   {
     label: 'Xbox',
@@ -34,7 +34,7 @@ const categories = [
     to: '/products?category=xbox',
     icon: Box,
     image: '/catalogs/xbox.jpg',
-    accent: 'from-green-500/30 to-transparent',
+    accent: 'from-amical-pink/30 to-transparent',
   },
   {
     label: 'Roblox',
@@ -42,7 +42,7 @@ const categories = [
     to: '/products?category=roblox',
     icon: Puzzle,
     image: '/catalogs/roblox.jpg',
-    accent: 'from-purple-500/30 to-transparent',
+    accent: 'from-amical-red/30 to-transparent',
   },
 ]
 
