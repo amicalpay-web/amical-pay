@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Button, Card, LoadingSpinner } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 import { ordersService } from '@/services/ordersService'
 import { Order } from '@/types'
 
@@ -26,6 +27,7 @@ function OrderConfirmation() {
   if (!order) {
     return (
       <div className="min-h-screen bg-amical-dark flex items-center justify-center">
+        <SeoHead title="Commande non trouvée" path="/order-confirmation" noindex />
         <Card>
           <p className="text-white text-center">Commande non trouvée</p>
           <Button className="w-full mt-4" onClick={() => navigate('/')}>
@@ -38,6 +40,8 @@ function OrderConfirmation() {
 
   return (
     <div className="min-h-screen bg-amical-dark py-12 px-4">
+      <SeoHead title="Confirmation de commande" path="/order-confirmation" noindex />
+
       <div className="max-w-2xl mx-auto">
         <Card className="text-center mb-8">
           <div className="text-6xl mb-4">✅</div>
