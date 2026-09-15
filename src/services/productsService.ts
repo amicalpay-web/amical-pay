@@ -1,4 +1,5 @@
 import { FazerCatalogResponse, Product, Region } from '@/types'
+import { apiUrl } from './api'
 
 interface ProductsResponse {
   products?: Product[]
@@ -10,13 +11,8 @@ export interface CategoryProductsUpdate {
   error?: string
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const CATEGORY_REQUEST_CONCURRENCY = 8
 const categoryProductsRequests = new Map<string, Promise<Product[]>>()
-
-function apiUrl(path: string): string {
-  return `${API_BASE_URL}${path}`
-}
 
 async function parseError(response: Response, resource: string): Promise<never> {
   const payload = await response.json().catch(() => ({})) as { error?: string }
