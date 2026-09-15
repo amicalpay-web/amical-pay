@@ -11,13 +11,11 @@ import {
   HelpCircle,
   Home,
   KeyRound,
-  LayoutGrid,
   LifeBuoy,
   LogOut,
   Send,
   Settings2,
   Ticket,
-  Truck,
   UserRound,
   WalletCards,
   X,
@@ -63,12 +61,11 @@ export function MobileMenu({
 
   if (!mounted) return null
 
-  const navItems = [
+  const overviewItems = [
     { to: '/', label: labels.home, icon: Home },
-    { to: '/products', label: labels.catalog, icon: LayoutGrid },
     { to: '/#how-it-works', label: labels.howItWorks, icon: HelpCircle },
-    { to: '/track-order', label: labels.trackOrder, icon: Truck },
-    { to: '/support', label: labels.contact, icon: LifeBuoy },
+    { to: '/track-order', label: labels.orders, icon: ClipboardList },
+    { to: '/track-order#transactions', label: labels.transactions, icon: ArrowRightLeft },
   ]
 
   const catalogItems = [
@@ -82,14 +79,13 @@ export function MobileMenu({
   ]
 
   const financeItems = [
-    { to: '/track-order', label: labels.orders, icon: ClipboardList },
-    { to: '/track-order#transactions', label: labels.transactions, icon: ArrowRightLeft },
     { to: '/account#balance', label: labels.balance, icon: WalletCards },
   ]
 
   const accountItems = [
     { to: '/account', label: labels.profile, icon: UserRound },
     { to: '/account#settings', label: labels.settings, icon: Settings2 },
+    { to: '/support', label: labels.support, icon: LifeBuoy },
   ]
 
   const renderSection = (
@@ -156,25 +152,27 @@ export function MobileMenu({
           </div>
         )}
 
-        {renderSection(labels.mainMenu, navItems)}
+        {renderSection(labels.overview, overviewItems)}
         <div className="mx-4 border-t border-white/10" />
         {renderSection(labels.catalog, catalogItems)}
         <div className="mx-4 border-t border-white/10" />
         {renderSection(labels.finance, financeItems)}
+        <div className="mx-4 border-t border-white/10" />
 
-        <nav className="border-t border-white/10 px-4 py-6" aria-label={labels.accountMenu}>
-          <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-500">{labels.accountSection}</p>
+        <nav className="px-4 py-5" aria-label={labels.accountSection}>
+          <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">{labels.accountSection}</p>
           {isAuthenticated ? (
-            <div className="space-y-1">
+            <div className="space-y-2">
               {accountItems.map(({ to, label, icon: Icon }) => (
                 <Link
                   key={to}
                   to={to}
                   onClick={onClose}
-                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-gray-300 transition hover:bg-white/[0.07] hover:text-white"
+                  className="group flex items-center gap-3 rounded-2xl border border-white/[0.08] px-4 py-3.5 text-[15px] font-medium text-gray-200 transition hover:border-amical-orange/40 hover:bg-white/[0.04] hover:text-white"
                 >
-                  <Icon size={18} className="text-gray-500" />
-                  {label}
+                  <Icon size={19} strokeWidth={1.8} className="text-gray-500 transition group-hover:text-amical-orange" />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  <ChevronRight size={18} className="text-gray-600 transition group-hover:translate-x-0.5 group-hover:text-amical-orange" />
                 </Link>
               ))}
               <button
@@ -183,10 +181,11 @@ export function MobileMenu({
                   onClose()
                   await onLogout()
                 }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+                className="group flex w-full items-center gap-3 rounded-2xl border border-white/[0.08] px-4 py-3.5 text-left text-[15px] font-medium text-gray-200 transition hover:border-amical-orange/40 hover:bg-white/[0.04] hover:text-white"
               >
-                <LogOut size={18} />
-                {labels.logout}
+                <LogOut size={19} strokeWidth={1.8} className="text-gray-500 transition group-hover:text-amical-orange" />
+                <span className="min-w-0 flex-1 truncate">{labels.logout}</span>
+                <ChevronRight size={18} className="text-gray-600 transition group-hover:translate-x-0.5 group-hover:text-amical-orange" />
               </button>
             </div>
           ) : (
