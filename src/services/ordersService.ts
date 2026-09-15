@@ -17,6 +17,7 @@ type ApiOrder = {
   status?: string
   created_at: string
   completed_at?: string
+  fazer_fields?: Record<string, unknown>
 }
 
 const orderStatuses: OrderStatus[] = [
@@ -50,12 +51,23 @@ async function toOrder(
   }
 
   const totalPrice = Number(apiOrder.total_price)
+  const fazerFields = Object.fromEntries(
+    Object.entries(apiOrder.fazer_fields || {}).map(([key, value]) => [key, String(value)])
+  )
+  const validationKeys = new Set(
+    (product.fazerValidationFields || [])
+      .map((field) => field.key)
+      .filter((key): key is string => Boolean(key))
+  )
+  const accountFields = Object.fromEntries(
+    Object.entries(fazerFields).filter(([key]) => validationKeys.has(key))
+  )
 
   return {
     id: apiOrder.id,
     orderNumber: apiOrder.order_number,
     product,
-    playerId: apiOrder.player_id,
+    playerId: apiOrder.player_id || accountFields.player_id || '',
     whatsappNumber: apiOrder.whatsapp_number || '',
     email: apiOrder.email,
     region: apiOrder.region || product.region,
@@ -65,6 +77,8 @@ async function toOrder(
     paymentMethod: normalizePaymentMethod(apiOrder.payment_method, fallbackPaymentMethod),
     createdAt: new Date(apiOrder.created_at),
     ...(apiOrder.completed_at ? { completedAt: new Date(apiOrder.completed_at) } : {}),
+    accountFields,
+    fazerFields,
   }
 }
 
