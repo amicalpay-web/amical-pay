@@ -11,6 +11,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
+  void _next
   const status = err.status || 500
   const message = err.message || 'Internal Server Error'
   const code = err.code || 'INTERNAL_ERROR'
