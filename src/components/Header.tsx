@@ -174,7 +174,7 @@ function Header() {
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        <Link to="/" aria-label="AmicalPay - accueil" className="shrink-0">
+        <Link to="/" aria-label="Amical Pay - accueil" className="shrink-0">
           <Brand />
         </Link>
 
