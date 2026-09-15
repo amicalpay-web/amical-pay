@@ -1,8 +1,15 @@
 import { Card } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 
 function Support() {
   return (
     <div className="min-h-screen bg-amical-dark py-12 px-4">
+      <SeoHead
+        title="Support & Contact"
+        description="Besoin d'aide ? Contactez Amical Pay par email ou WhatsApp (+509 4388 2372), support disponible 24/7."
+        path="/support"
+      />
+
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">Support</h1>
 
