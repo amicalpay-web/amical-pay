@@ -25,8 +25,10 @@ export interface Product {
 
 export interface FazerValidationField {
   key?: string;
+  name?: string;
   label?: string;
   type?: string;
+  required?: boolean;
   options?: Array<Record<string, unknown>>;
 }
 
@@ -86,7 +88,7 @@ export interface Order {
   id: string;
   orderNumber: string;
   product: Product;
-  playerId: string;
+  playerId?: string;
   whatsappNumber: string;
   email: string;
   region: Region;
@@ -96,6 +98,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   createdAt: Date;
   completedAt?: Date;
+  accountFields?: Record<string, string>;
   fazerFields?: Record<string, string>;
 }
 
@@ -106,9 +109,10 @@ export type PaymentMethod = 'paypal' | 'moncash' | 'natcash';
 // Cart Types
 export interface CartItem {
   product: Product;
-  playerId: string;
+  playerId?: string;
   whatsappNumber?: string;
   email?: string;
+  accountFields?: Record<string, string>;
   fazerFields?: Record<string, string>;
 }
 
