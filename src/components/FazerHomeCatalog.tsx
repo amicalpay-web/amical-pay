@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
-import { Package } from 'lucide-react'
+import { Package, Flame, Search } from 'lucide-react'
 import { Alert, Button, Card, Input, LoadingSpinner } from '@/components'
 import { productsService } from '@/services/productsService'
 import { FazerCatalogItem } from '@/types'
@@ -12,6 +12,9 @@ interface CatalogViewItem extends FazerCatalogItem {
   loadState: CategoryLoadState
 }
 
+const isFreeFireCategory = (category: CatalogViewItem) =>
+  category.category.category_name?.toLowerCase().includes('free fire') ?? false
+
 /**
  * Real FazerCards catalog embedded on the home page.
  *
@@ -21,6 +24,11 @@ interface CatalogViewItem extends FazerCatalogItem {
  * offers load independently (Promise.allSettled under the hood), so one
  * failing category never blocks the others. "All catalogs" is a frontend
  * filter only and is never sent to the backend as a category.
+ *
+ * With 300+ categories in the live catalog, we never render every category's
+ * full product grid at once by default — that would be an unusable wall of
+ * cards. Instead: Free Fire (our flagship) is featured by default, and every
+ * other category is reachable through the search box or the category chips.
  */
 export function FazerHomeCatalog() {
   const navigate = useNavigate()
@@ -137,9 +145,20 @@ export function FazerHomeCatalog() {
     return productsByCategory
   }, [categories, normalizedQuery])
 
-  const visibleCategories = selectedCategoryId
-    ? categories.filter((category) => category.category.category_id === selectedCategoryId)
-    : categories
+  const featuredCategories = useMemo(() => categories.filter(isFreeFireCategory), [categories])
+
+  // Default state (nothing picked, nothing searched): only feature Free Fire.
+  // Picking a chip or typing a search is how the other 300+ categories surface.
+  let visibleCategories: CatalogViewItem[]
+  if (selectedCategoryId) {
+    visibleCategories = categories.filter((category) => category.category.category_id === selectedCategoryId)
+  } else if (normalizedQuery) {
+    visibleCategories = categories.filter((category) => (filteredProductsByCategory.get(category.category.category_id)?.length || 0) > 0)
+  } else {
+    visibleCategories = featuredCategories
+  }
+
+  const isDefaultView = !selectedCategoryId && !normalizedQuery
   const loadedOfferCount = categories.reduce((total, category) => total + category.products.length, 0)
   const visibleOfferCount = visibleCategories.reduce(
     (total, category) => total + (filteredProductsByCategory.get(category.category.category_id)?.length || 0),
@@ -206,7 +225,7 @@ export function FazerHomeCatalog() {
             </div>
 
             <div
-              className="-mx-4 mb-10 flex gap-3 overflow-x-auto px-4 pb-3 md:mx-0 md:flex-wrap md:px-0"
+              className="-mx-4 mb-6 flex gap-3 overflow-x-auto px-4 pb-3 md:mx-0 md:flex-wrap md:px-0"
               role="tablist"
               aria-label={t('products.categories')}
             >
@@ -247,12 +266,30 @@ export function FazerHomeCatalog() {
               })}
             </div>
 
+            {isDefaultView && (
+              <div className="mb-10 flex items-start gap-3 rounded-xl border border-white/10 bg-amical-dark-secondary/50 px-4 py-3 text-sm text-gray-400">
+                <Search size={16} className="mt-0.5 shrink-0 text-amical-orange" />
+                <p>
+                  Nous mettons en avant <span className="font-semibold text-white">Free Fire</span> ci-dessous. Pour
+                  explorer le reste du catalogue ({categories.length} catégories), utilisez la recherche ou choisissez
+                  une catégorie juste au-dessus.
+                </p>
+              </div>
+            )}
+
+            {isDefaultView && featuredCategories.length === 0 && !loading && (
+              <Card className="mb-10">
+                <p className="text-center text-gray-400">{t('products.noOffers')}</p>
+              </Card>
+            )}
+
             <div className="space-y-14">
               {visibleCategories.map((category) => {
                 const categoryId = category.category.category_id
                 const filteredProducts = filteredProductsByCategory.get(categoryId) || []
                 const categoryDescription = category.category.description
                 const categoryImage = category.category.image_url
+                const isFeatured = isDefaultView && isFreeFireCategory(category)
 
                 return (
                   <div key={categoryId} id={`home-catalog-${categoryId}`} className="scroll-mt-8">
@@ -270,7 +307,15 @@ export function FazerHomeCatalog() {
                           </div>
                         )}
                         <div>
-                          <h3 className="text-xl font-bold text-white">{category.category.category_name}</h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-xl font-bold text-white">{category.category.category_name}</h3>
+                            {isFeatured && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amical-orange px-2.5 py-1 text-xs font-bold text-white">
+                                <Flame size={12} />
+                                En vedette
+                              </span>
+                            )}
+                          </div>
                           {categoryDescription && (
                             <p className="mt-1 max-w-2xl whitespace-pre-line text-sm text-gray-400">
                               {categoryDescription}
