@@ -2,25 +2,28 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRightLeft,
-  BadgeDollarSign,
+  Box as BoxIcon,
   CircleUserRound,
   ChevronRight,
   ClipboardList,
-  CreditCard,
-  Gift,
+  Flame,
+  Gamepad2,
+  Grid3x3,
   HelpCircle,
   Home,
-  KeyRound,
+  Joystick,
   LifeBuoy,
   LogOut,
-  Send,
+  Package,
+  Puzzle,
   Settings2,
-  Ticket,
   UserRound,
   WalletCards,
   X,
 } from 'lucide-react'
 import type { HeaderLabels } from './Header'
+import { productsService } from '@/services/productsService'
+import { FazerCatalogItem } from '@/types'
 import logo from '@/assets/logo.svg'
 
 interface MobileMenuProps {
@@ -32,6 +35,17 @@ interface MobileMenuProps {
   onLogout: () => Promise<void>
 }
 
+// Curated shortcuts into the live FazerCards catalog. Matched by category
+// name against whatever the API returns, so the menu always links to real,
+// working category ids instead of hardcoded slugs.
+const CURATED_CATALOG_MATCHES: Array<{ match: string; icon: typeof Home }> = [
+  { match: 'free fire', icon: Flame },
+  { match: 'steam', icon: Gamepad2 },
+  { match: 'playstation', icon: Joystick },
+  { match: 'xbox', icon: BoxIcon },
+  { match: 'roblox', icon: Puzzle },
+]
+
 export function MobileMenu({
   open,
   userLabel,
@@ -42,6 +56,8 @@ export function MobileMenu({
 }: MobileMenuProps) {
   const [mounted, setMounted] = useState(open)
   const [visible, setVisible] = useState(false)
+  const [liveCategories, setLiveCategories] = useState<FazerCatalogItem[]>([])
+  const [catalogTotals, setCatalogTotals] = useState({ categories: 0, offers: 0 })
 
   useEffect(() => {
     let timer: number | undefined
@@ -59,6 +75,30 @@ export function MobileMenu({
     }
   }, [open])
 
+  // Load the real catalog once, the first time the menu is opened.
+  useEffect(() => {
+    if (!open || liveCategories.length > 0) return
+    let active = true
+
+    productsService
+      .getCatalog()
+      .then((catalog) => {
+        if (!active) return
+        setLiveCategories(catalog.categories)
+        setCatalogTotals({
+          categories: catalog.total_categories || catalog.categories.length,
+          offers: catalog.total_offers || 0,
+        })
+      })
+      .catch(() => {
+        // Menu still works via the "Toutes les catégories" link below.
+      })
+
+    return () => {
+      active = false
+    }
+  }, [open, liveCategories.length])
+
   if (!mounted) return null
 
   const overviewItems = [
@@ -68,15 +108,18 @@ export function MobileMenu({
     { to: '/track-order#transactions', label: labels.transactions, icon: ArrowRightLeft },
   ]
 
-  const catalogItems = [
-    { to: '/products?catalog=steam-top-up-cis', label: labels.steamTopUpCis, icon: CreditCard },
-    { to: '/products?catalog=steam-gift-games', label: labels.steamGiftGames, icon: Gift },
-    { to: '/products?catalog=telegram-stars', label: labels.telegramStars, icon: Send },
-    { to: '/products?catalog=game-keys', label: labels.gameKeys, icon: KeyRound },
-    { to: '/products?catalog=manual-services', label: labels.manualServices, icon: ClipboardList },
-    { to: '/products?catalog=gift-cards', label: labels.giftCards, icon: Ticket },
-    { to: '/products?catalog=service-top-up', label: labels.serviceTopUp, icon: BadgeDollarSign },
-  ]
+  const curatedCatalogItems = CURATED_CATALOG_MATCHES.map(({ match, icon }) => {
+    const found = liveCategories.find((item) =>
+      item.category.category_name?.toLowerCase().includes(match)
+    )
+    if (!found) return null
+    return {
+      to: `/products?category=${encodeURIComponent(found.category.category_id)}`,
+      label: found.category.category_name,
+      icon,
+      image: found.category.image_url,
+    }
+  }).filter((item): item is { to: string; label: string; icon: typeof Home; image?: string } => item !== null)
 
   const financeItems = [
     { to: '/account#balance', label: labels.balance, icon: WalletCards },
@@ -154,7 +197,54 @@ export function MobileMenu({
 
         {renderSection(labels.overview, overviewItems)}
         <div className="mx-4 border-t border-white/10" />
-        {renderSection(labels.catalog, catalogItems)}
+
+        {/* Real catalog, imported live from the FazerCards API — same source
+            of truth as the homepage, so links always resolve to a real category. */}
+        <nav className="px-4 py-5" aria-label={labels.catalog}>
+          <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">{labels.catalog}</p>
+          <div className="space-y-2">
+            {curatedCatalogItems.map(({ to, label, icon: Icon, image }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={onClose}
+                className="group flex items-center gap-3 rounded-2xl border border-white/[0.08] px-4 py-3.5 text-[15px] font-medium text-gray-200 transition hover:border-amical-orange/40 hover:bg-white/[0.04] hover:text-white"
+              >
+                {image ? (
+                  <img src={image} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <Icon size={19} strokeWidth={1.8} className="shrink-0 text-gray-500 transition group-hover:text-amical-orange" />
+                )}
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                <ChevronRight size={18} className="shrink-0 text-gray-600 transition group-hover:translate-x-0.5 group-hover:text-amical-orange" />
+              </Link>
+            ))}
+
+            <Link
+              to="/products"
+              onClick={onClose}
+              className="group flex items-center gap-3 rounded-2xl border border-amical-orange/25 bg-amical-orange/[0.06] px-4 py-3.5 text-[15px] font-semibold text-white transition hover:border-amical-orange/50 hover:bg-amical-orange/10"
+            >
+              <Grid3x3 size={19} strokeWidth={1.8} className="shrink-0 text-amical-orange" />
+              <span className="min-w-0 flex-1 truncate">
+                Toutes les catégories
+                {catalogTotals.categories > 0 && (
+                  <span className="ml-1.5 font-normal text-gray-400">
+                    ({catalogTotals.categories})
+                  </span>
+                )}
+              </span>
+              <ChevronRight size={18} className="shrink-0 text-amical-orange transition group-hover:translate-x-0.5" />
+            </Link>
+
+            {curatedCatalogItems.length === 0 && liveCategories.length === 0 && (
+              <p className="flex items-center gap-2 px-2 text-xs text-gray-500">
+                <Package size={14} />
+                Chargement du catalogue…
+              </p>
+            )}
+          </div>
+        </nav>
         <div className="mx-4 border-t border-white/10" />
         {renderSection(labels.finance, financeItems)}
         <div className="mx-4 border-t border-white/10" />
