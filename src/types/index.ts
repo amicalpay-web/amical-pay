@@ -17,6 +17,7 @@ export interface Product {
   metadata?: Record<string, unknown>;
   fazerFields?: FazerValidationField[];
   fazerCategoryId?: string;
+  fazerValidationCategoryId?: string;
   fazerOfferId?: string;
   fazerValidationFields?: FazerValidationField[];
   requiresPlayerValidation?: boolean;
