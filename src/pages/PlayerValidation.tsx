@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Input } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 import { useState } from 'react'
 
 function PlayerValidation() {
@@ -17,6 +18,8 @@ function PlayerValidation() {
 
   return (
     <div className="min-h-screen bg-amical-dark flex items-center justify-center px-4">
+      <SeoHead title="Validation du Player ID" path="/player-validation" noindex />
+
       <Card className="max-w-md w-full">
         <h1 className="text-2xl font-bold text-white mb-6">Valider votre Player ID</h1>
         <div className="space-y-4">
