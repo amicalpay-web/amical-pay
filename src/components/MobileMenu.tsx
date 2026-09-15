@@ -8,12 +8,16 @@ import {
   ClipboardList,
   CreditCard,
   Gift,
+  HelpCircle,
   Home,
   KeyRound,
+  LayoutGrid,
+  LifeBuoy,
   LogOut,
   Send,
   Settings2,
   Ticket,
+  Truck,
   UserRound,
   WalletCards,
   X,
@@ -59,10 +63,12 @@ export function MobileMenu({
 
   if (!mounted) return null
 
-  const overviewItems = [
+  const navItems = [
     { to: '/', label: labels.home, icon: Home },
-    { to: '/track-order', label: labels.orders, icon: ClipboardList },
-    { to: '/track-order#transactions', label: labels.transactions, icon: ArrowRightLeft },
+    { to: '/products', label: labels.catalog, icon: LayoutGrid },
+    { to: '/#how-it-works', label: labels.howItWorks, icon: HelpCircle },
+    { to: '/track-order', label: labels.trackOrder, icon: Truck },
+    { to: '/support', label: labels.contact, icon: LifeBuoy },
   ]
 
   const catalogItems = [
@@ -76,6 +82,8 @@ export function MobileMenu({
   ]
 
   const financeItems = [
+    { to: '/track-order', label: labels.orders, icon: ClipboardList },
+    { to: '/track-order#transactions', label: labels.transactions, icon: ArrowRightLeft },
     { to: '/account#balance', label: labels.balance, icon: WalletCards },
   ]
 
@@ -108,7 +116,7 @@ export function MobileMenu({
   )
 
   return (
-    <div className="md:hidden">
+    <div>
       <button
         type="button"
         aria-label={labels.closeMenu}
@@ -148,7 +156,7 @@ export function MobileMenu({
           </div>
         )}
 
-        {renderSection(labels.overview, overviewItems)}
+        {renderSection(labels.mainMenu, navItems)}
         <div className="mx-4 border-t border-white/10" />
         {renderSection(labels.catalog, catalogItems)}
         <div className="mx-4 border-t border-white/10" />

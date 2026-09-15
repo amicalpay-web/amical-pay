@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChevronDown,
   Menu,
-  Search,
-  Sun,
   X,
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
@@ -67,7 +65,7 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
     account: 'Mon compte',
     accountMenu: 'Menu du compte',
     mainMenu: 'Navigation principale',
-    mobileMenu: 'Menu mobile',
+    mobileMenu: 'Menu',
     main: 'Principal',
     accountSection: 'Compte',
     profile: 'Mon profil',
@@ -101,7 +99,7 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
     account: 'My account',
     accountMenu: 'Account menu',
     mainMenu: 'Main navigation',
-    mobileMenu: 'Mobile menu',
+    mobileMenu: 'Menu',
     main: 'Main',
     accountSection: 'Account',
     profile: 'My profile',
@@ -154,14 +152,6 @@ function Header() {
     if (!result.error) navigate('/')
   }
 
-  const navItems = [
-    { to: '/', label: labels.home, end: true },
-    { to: '/products', label: labels.catalog },
-    { to: '/#how-it-works', label: labels.howItWorks },
-    { to: '/track-order', label: labels.trackOrder },
-    { to: '/support', label: labels.contact },
-  ]
-
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#0f0f0f]/90 backdrop-blur-xl">
       <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-3 px-3 sm:px-5 lg:px-8">
@@ -170,7 +160,7 @@ function Header() {
           aria-label={mobileOpen ? labels.closeMenu : labels.mobileMenu}
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((value) => !value)}
-          className="rounded-xl border border-white/10 p-2 text-gray-300 transition hover:border-amical-orange/50 hover:text-white md:hidden"
+          className="rounded-xl border border-white/10 p-2 text-gray-300 transition hover:border-amical-orange/50 hover:text-white"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -179,47 +169,7 @@ function Header() {
           <Brand />
         </Link>
 
-        <nav className="ml-8 hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label={labels.mainMenu}>
-          {navItems.map(({ to, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) => isActive
-                ? 'rounded-xl bg-amical-orange/10 px-3 py-2 text-sm font-medium text-amical-orange'
-                : 'rounded-xl px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-white/[0.05] hover:text-white'}
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            aria-label={labels.search}
-            onClick={() => navigate('/products')}
-            className="rounded-xl p-2.5 text-gray-400 transition hover:bg-white/[0.06] hover:text-white"
-          >
-            <Search size={19} strokeWidth={1.8} />
-          </button>
-
-          {/* Devise (affichage HTG) */}
-          <label className="hidden items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-gray-300 sm:flex">
-            HTG
-            <ChevronDown size={13} className="text-gray-500" />
-          </label>
-
-          {/* Toggle thème (cosmétique pour le moment, le site reste en thème sombre) */}
-          <button
-            type="button"
-            aria-label="Thème"
-            title="Bientôt disponible"
-            className="hidden rounded-xl border border-white/10 p-2 text-gray-300 transition hover:border-amical-orange/40 hover:text-white sm:flex"
-          >
-            <Sun size={16} />
-          </button>
-
           <label className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs font-semibold text-gray-300 transition hover:border-amical-orange/40">
             <span className="sr-only">{labels.language}</span>
             <select
@@ -234,34 +184,12 @@ function Header() {
             <ChevronDown size={13} className="text-gray-500" />
           </label>
 
-          {/* Badge support WhatsApp */}
-          <a
-            href="https://wa.me/50943882372"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-2 rounded-full bg-emerald-600/90 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-600 md:flex"
-          >
-            Support
-            <span className="font-bold">+509 4388 2372</span>
-          </a>
-
-          <div className="hidden md:block">
-            <UserMenu
-              userLabel={userLabel}
-              labels={labels}
-              isAuthenticated={isAuthenticated}
-              onLogout={handleLogout}
-            />
-          </div>
-
-          <div className="md:hidden">
-            <UserMenu
-              userLabel={userLabel}
-              labels={labels}
-              isAuthenticated={isAuthenticated}
-              onLogout={handleLogout}
-            />
-          </div>
+          <UserMenu
+            userLabel={userLabel}
+            labels={labels}
+            isAuthenticated={isAuthenticated}
+            onLogout={handleLogout}
+          />
         </div>
       </div>
 
