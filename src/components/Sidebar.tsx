@@ -1,50 +1,42 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import {
-  Flame,
-  Gem,
-  Ticket,
-  Star,
-  Gamepad2,
-  Joystick,
-  Box,
-  Radio,
-  Puzzle,
-  Swords,
-  Crosshair,
-  Target,
-} from 'lucide-react'
+import { ChevronRight, Flame, LoaderCircle } from 'lucide-react'
+import { productsService } from '@/services/productsService'
+import { resolveCatalogMenuItems } from './catalogMenu'
+import type { FazerCatalogItem } from '@/types'
 
-interface CategoryLink {
-  label: string
-  to: string
-  icon: React.ReactNode
-}
-
-const freeFireLinks: CategoryLink[] = [
-  { label: 'Diamonds', to: '/products?category=free_fire_latam&type=diamonds', icon: <Gem size={16} /> },
-  { label: 'Passes & Abonnements', to: '/products?category=free_fire_latam&type=passes', icon: <Ticket size={16} /> },
-  { label: 'Autres produits Free Fire', to: '/products?category=free_fire_latam', icon: <Star size={16} /> },
-]
-
-const gameLinks: CategoryLink[] = [
-  { label: 'Steam', to: '/products?category=steam', icon: <Gamepad2 size={16} /> },
-  { label: 'PlayStation', to: '/products?category=playstation', icon: <Joystick size={16} /> },
-  { label: 'Xbox', to: '/products?category=xbox', icon: <Box size={16} /> },
-  { label: 'Nintendo', to: '/products?category=nintendo', icon: <Radio size={16} /> },
-  { label: 'Roblox', to: '/products?category=roblox', icon: <Puzzle size={16} /> },
-  { label: 'Mobile Legends', to: '/products?category=mobile_legends', icon: <Swords size={16} /> },
-  { label: 'Valorant', to: '/products?category=valorant', icon: <Target size={16} /> },
-  { label: 'Call of Duty', to: '/products?category=cod', icon: <Crosshair size={16} /> },
-]
-
-const infoLinks: CategoryLink[] = [
-  { label: 'Comment ça marche', to: '/#how-it-works', icon: null },
-  { label: 'Suivre ma commande', to: '/track-order', icon: null },
-  { label: 'Contact', to: '/support', icon: null },
+const infoLinks = [
+  { label: 'Comment ça marche', to: '/#how-it-works' },
+  { label: 'Suivre ma commande', to: '/track-order' },
+  { label: 'Contact', to: '/support' },
 ]
 
 export function Sidebar() {
   const location = useLocation()
+  const [liveCategories, setLiveCategories] = useState<FazerCatalogItem[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    productsService.getCatalog()
+      .then((catalog) => {
+        if (!active) return
+        setLiveCategories(catalog.categories)
+      })
+      .catch(() => {
+        if (active) setLiveCategories([])
+      })
+      .finally(() => {
+        if (active) setCatalogLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const catalogItems = resolveCatalogMenuItems(liveCategories)
+  const selectedCategoryId = new URLSearchParams(location.search).get('category')
   const isProducts = location.pathname.startsWith('/products')
 
   return (
@@ -52,55 +44,42 @@ export function Sidebar() {
       <div className="sticky top-[5.5rem] space-y-6">
         <div>
           <p className="mb-3 px-1 text-xs font-bold uppercase tracking-wider text-gray-500">
-            Catégories
+            Catalogue
           </p>
           <nav className="space-y-1" aria-label="Catégories de produits">
             <Link
               to="/products"
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                isProducts
-                  ? 'bg-amical-orange/15 text-amical-orange'
-                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
-              }`}
+              className={'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition ' + (isProducts && !selectedCategoryId
+                ? 'bg-amical-orange/15 text-amical-orange'
+                : 'text-gray-300 hover:bg-white/5 hover:text-white')}
             >
               <Flame size={16} />
-              Tous les produits
+              Toutes les catégories
             </Link>
 
-            <div className="pt-2">
-              <div className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-bold text-white">
-                <Flame size={16} className="text-amical-orange" />
-                Free Fire
-              </div>
-              <div className="ml-4 space-y-0.5 border-l border-white/10 pl-3">
-                {freeFireLinks.map((link) => (
-                  <Link
-                    key={link.label}
-                    to={link.to}
-                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-gray-400 transition hover:text-white"
-                  >
-                    {link.icon}
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-3">
-              <p className="mb-1 px-3 text-xs font-bold uppercase tracking-wider text-gray-500">
-                Jeux
-              </p>
-              {gameLinks.map((link) => (
+            {catalogItems.map((item) => {
+              const Icon = item.icon
+              return (
                 <Link
-                  key={link.label}
-                  to={link.to}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
+                  key={item.categoryId}
+                  to={'/products?category=' + encodeURIComponent(item.categoryId)}
+                  className={'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ' + (selectedCategoryId === item.categoryId
+                    ? 'bg-amical-orange/15 text-amical-orange'
+                    : 'text-gray-300 hover:bg-white/5 hover:text-white')}
                 >
-                  {link.icon}
-                  {link.label}
+                  {item.image ? <img src={item.image} alt="" className="h-5 w-5 rounded object-cover" /> : <Icon size={16} />}
+                  <span className="min-w-0 flex-1 truncate">{item.labelFr}</span>
+                  <ChevronRight size={14} className="text-gray-600" />
                 </Link>
-              ))}
-            </div>
+              )
+            })}
+
+            {catalogLoading && (
+              <p className="flex items-center gap-2 px-3 py-2 text-xs text-gray-500">
+                <LoaderCircle size={14} className="animate-spin" />
+                Chargement…
+              </p>
+            )}
           </nav>
         </div>
 

@@ -15,7 +15,10 @@ export interface HeaderLabels {
   home: string
   overview: string
   catalog: string
+  freeFire: string
   finance: string
+  statistics: string
+  addOns: string
   steamTopUpCis: string
   steamGiftGames: string
   telegramStars: string
@@ -51,7 +54,12 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
     home: 'Accueil',
     overview: 'Vue d’ensemble',
     catalog: 'Produits',
+    freeFire: 'Free Fire',
     finance: 'Finance',
+    statistics: 'Statistics',
+    addOns: 'Add-ons',
+    statistics: 'Statistiques',
+    addOns: 'Add-ons',
     steamTopUpCis: 'Recharge Steam (CIS)',
     steamGiftGames: 'Jeux cadeaux Steam',
     telegramStars: 'Étoiles Telegram',
@@ -85,6 +93,7 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
     home: 'Home',
     overview: 'Overview',
     catalog: 'Products',
+    freeFire: 'Free Fire',
     finance: 'Finance',
     steamTopUpCis: 'Steam Top-Up (CIS)',
     steamGiftGames: 'Steam Gift Games',

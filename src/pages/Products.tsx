@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button, Card, Input, LoadingSpinner } from '@/components'
 import { productsService } from '@/services/productsService'
@@ -14,6 +14,8 @@ interface CatalogViewItem extends FazerCatalogItem {
 
 function Products() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedCategoryId = searchParams.get('category') || ''
   const { t } = useTranslation()
   const { currency } = useAppContext()
   const [categories, setCategories] = useState<CatalogViewItem[]>([])
@@ -44,7 +46,6 @@ function Products() {
           loadState: 'loading' as const,
         }))
         setCategories(initialCategories)
-        setSelectedCategoryId('')
         setLoading(false)
 
         void productsService.getCatalogWithProducts(catalog, (update) => {
@@ -78,6 +79,16 @@ function Products() {
       active = false
     }
   }, [t])
+
+
+  useEffect(() => {
+    if (categories.length === 0) return
+
+    const categoryExists = categories.some((category) =>
+      category.category.category_id === requestedCategoryId
+    )
+    setSelectedCategoryId(categoryExists ? requestedCategoryId : '')
+  }, [requestedCategoryId, categories.length])
 
   const retryCategory = async (categoryId: string) => {
     setCategories((current) => current.map((category) =>
@@ -138,6 +149,13 @@ function Products() {
   )
 
   const selectCategory = (categoryId: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams)
+    if (categoryId) {
+      nextSearchParams.set('category', categoryId)
+    } else {
+      nextSearchParams.delete('category')
+    }
+    setSearchParams(nextSearchParams, { replace: true })
     setSelectedCategoryId(categoryId)
     if (!categoryId) {
       window.requestAnimationFrame(() => {
