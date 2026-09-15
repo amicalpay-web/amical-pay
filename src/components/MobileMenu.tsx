@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   ArrowRightLeft,
@@ -126,7 +127,7 @@ export function MobileMenu({
     </nav>
   )
 
-  return (
+  return createPortal(
     <div>
       <button
         type="button"
@@ -264,6 +265,7 @@ export function MobileMenu({
           )}
         </nav>
       </aside>
-    </div>
+    </div>,
+    document.body,
   )
 }
