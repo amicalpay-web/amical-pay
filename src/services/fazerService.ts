@@ -39,5 +39,10 @@ export const fazerService = {
 }
 
 export function getValidationFields(productFields?: FazerValidationField[]): FazerValidationField[] {
-  return Array.isArray(productFields) ? productFields : []
+  if (!Array.isArray(productFields)) return []
+
+  return productFields.map((field) => ({
+    ...field,
+    key: field.key || field.name,
+  }))
 }
