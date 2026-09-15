@@ -2,7 +2,7 @@ import express, { Express, Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import { getEnv } from './config/env.js'
 import { errorHandler } from './middleware/errorHandler.js'
-import { authMiddleware } from './middleware/auth.js'
+import { authMiddleware, supabaseAuthMiddleware } from './middleware/auth.js'
 import productRoutes from './routes/products.js'
 import orderRoutes from './routes/orders.js'
 import adminRoutes from './routes/admin.js'
@@ -68,7 +68,13 @@ export function createServer(): Express {
 
   // Routes: API
   app.use('/api/products', productRoutes)
-  app.use('/api/orders', orderRoutes)
+  app.use('/api/orders', (req, res, next) => {
+    if (req.method === 'POST' || req.path === '/me') {
+      void supabaseAuthMiddleware(req, res, next)
+      return
+    }
+    next()
+  }, orderRoutes)
   app.use('/api/payments', paymentRoutes)
   app.use('/api/webhook', webhookRoutes)
   app.use('/api/fazer', fazerRoutes)
