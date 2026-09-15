@@ -57,8 +57,10 @@ export interface FazerTopupOffer {
 
 export interface FazerValidationField {
   key?: string
+  name?: string
   label?: string
   type?: string
+  required?: boolean
   options?: Array<Record<string, unknown>>
 }
 
