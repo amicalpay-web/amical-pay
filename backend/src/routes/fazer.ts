@@ -175,12 +175,12 @@ router.post(
 
       res.json({
         status: 'success',
-        valid: true,
+        valid: validationResult.valid,
         categoryId: validationResult.category_id,
         playerId: validationResult.player_id,
         playerName: validationResult.player_name,
         region: validationResult.region,
-        message: 'Player ID was confirmed by FazerCards',
+        message: 'Account identifiers were confirmed by FazerCards',
       })
     } catch (error) {
       next(error)
