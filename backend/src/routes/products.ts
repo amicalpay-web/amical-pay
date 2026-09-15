@@ -7,10 +7,8 @@
 
 import { Router, Request, Response, NextFunction } from 'express'
 import * as fazer from '../services/fazerCards.js'
-import { getFullCatalog } from '../services/fazerCatalog.js'
 import {
   FazerCatalogItem,
-  FazerCatalogSnapshot,
   FazerOffer,
   FazerValidationField,
 } from '../types/fazer.js'
@@ -80,15 +78,41 @@ function normalizeOffer(
   }
 }
 
-function catalogForResponse(snapshot: FazerCatalogSnapshot): Record<string, unknown> {
+function emptyCatalogItem(category: FazerCatalogItem['category']): FazerCatalogItem {
   return {
-    ...snapshot,
-    categories: snapshot.categories.map((item) => ({
-      ...item,
-      products: item.offers.map((offer, index) =>
-        normalizeOffer(offer, item.category, item.fields, index)
-      ),
+    category,
+    offers: [],
+    fields: [],
+  }
+}
+
+async function categoryWithOffers(categoryId: string): Promise<FazerCatalogItem> {
+  const category = (await fazer.getCategories())
+    .find((candidate) => candidate.category_id === categoryId)
+  if (!category) {
+    throw new Error(`FazerCards category not found: ${categoryId}`)
+  }
+
+  const response = await fazer.getTopupOffers(categoryId)
+  return {
+    category,
+    offers: response.offers.map((offer) => ({
+      offer_id: offer.offer_id,
+      offer_name: offer.name,
+      price: Number(offer.price_usd),
+      price_currency: 'USD',
+      price_usd: offer.price_usd,
+      stock: offer.stock,
+      description: offer.description || response.note || category.description,
+      image_url: offer.image_url || offer.image || category.image_url,
+      fields: offer.fields || response.fields || [],
+      metadata: offer.metadata || response.metadata,
+      category_id: category.category_id,
+      category_name: category.category_name,
     })),
+    fields: response.fields || [],
+    note: response.note,
+    metadata: response.metadata,
   }
 }
 
@@ -170,17 +194,37 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 // Return every category, its real offers, dynamic fields and partial failures.
 router.get('/catalog', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [snapshot, fullCatalog] = await Promise.all([
-      fazer.getCatalog(),
-      getFullCatalog(),
-    ])
+    const categories = await fazer.getCategories()
     res.setHeader('Cache-Control', 'private, max-age=300')
     res.json({
       status: 'success',
       source: 'fazer',
-      ...catalogForResponse(snapshot),
-      families: fullCatalog.sources,
-      errors: fullCatalog.errors,
+      fetched_at: new Date().toISOString(),
+      total_categories: categories.length,
+      total_offers: 0,
+      categories: categories.map(emptyCatalogItem),
+      lazy_offers: true,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// GET /api/products/catalog/:categoryId
+// Load one category's offers on demand instead of blocking the storefront on
+// hundreds of upstream requests.
+router.get('/catalog/:categoryId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const item = await categoryWithOffers(req.params.categoryId)
+    res.setHeader('Cache-Control', 'private, max-age=300')
+    res.json({
+      status: 'success',
+      source: 'fazer',
+      category: item.category,
+      products: item.offers.map((offer, index) =>
+        normalizeOffer(offer, item.category, item.fields, index)
+      ),
+      fields: item.fields || [],
     })
   } catch (error) {
     next(error)
@@ -191,18 +235,21 @@ router.get('/catalog', async (_req: Request, res: Response, next: NextFunction) 
 // Resolve products from the same dynamic FazerCards catalog used by the UI.
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const snapshot = await fazer.getCatalog()
-    for (const item of snapshot.categories) {
-      const product = item.offers
-        .map((offer, index) => normalizeOffer(offer, item.category, item.fields, index))
-        .find((candidate) => candidate.id === req.params.id)
-      if (product) {
-        res.json(product)
-        return
-      }
+    const match = req.params.id.match(/^fazer-(.+)--(.+)$/)
+    if (!match) {
+      res.status(404).json({ error: 'Product not found', id: req.params.id })
+      return
     }
 
-    res.status(404).json({ error: 'Product not found', id: req.params.id })
+    const item = await categoryWithOffers(match[1])
+    const product = item.offers
+      .map((offer, index) => normalizeOffer(offer, item.category, item.fields, index))
+      .find((candidate) => candidate.id === req.params.id)
+    if (!product) {
+      res.status(404).json({ error: 'Product not found', id: req.params.id })
+      return
+    }
+    res.json(product)
   } catch (error) {
     next(error)
   }
