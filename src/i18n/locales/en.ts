@@ -61,8 +61,6 @@ export const en = {
     loadedOffers: '{{count}} offers available',
     gameSelectionHint: 'Switch games whenever you like.',
     noGames: 'No games available.',
-    title: 'Choose your game',
-    subtitle: 'Select a game to view its offers. Only one catalog loads at a time.',
     selectRegion: 'Select a region',
     allCatalogs: 'All catalogs',
     categories: 'Categories',
