@@ -1,19 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAppContext } from '@/contexts/AppContext'
 import { Button } from '@/components'
-import { regions } from '@/data/regions'
-import type { Region } from '@/types'
+import { FazerHomeCatalog } from '@/components/FazerHomeCatalog'
 
 function Home() {
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { region, setRegion } = useAppContext()
-
-  const handleRegionSelect = (selectedRegion: Region) => {
-    setRegion(selectedRegion)
-    navigate('/products')
-  }
 
   return (
     <div className="min-h-screen bg-amical-dark">
@@ -35,38 +27,8 @@ function Home() {
         </div>
       </section>
 
-      {/* Regions Section */}
-      <section className="py-20 px-4 bg-amical-dark">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-white mb-2 text-center">
-            {t('regions.title')}
-          </h2>
-          <p className="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-            Sélectionnez votre région pour voir les produits disponibles
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {regions.map((reg) => (
-              <div
-                key={reg.id}
-                className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
-                  region === reg.id
-                    ? 'border-amical-orange bg-amical-dark-secondary'
-                    : 'border-amical-dark-tertiary hover:border-amical-orange/50'
-                }`}
-                onClick={() => handleRegionSelect(reg.id)}
-              >
-                <div className="text-4xl mb-3">{reg.flag}</div>
-                <h3 className="text-lg font-semibold text-white mb-2">{reg.name}</h3>
-                <p className="text-sm text-gray-400 mb-4">Région sélectionnée</p>
-                <Button variant="secondary" size="sm" className="w-full">
-                  {t('regions.select')}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Real FazerCards catalog, loaded live - see FazerHomeCatalog */}
+      <FazerHomeCatalog />
 
       {/* How It Works */}
       <section id="how-it-works" className="py-20 px-4 bg-amical-dark-secondary">
@@ -76,7 +38,7 @@ function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { step: 1, title: 'Choisir', desc: 'Sélectionnez votre région et votre offre' },
+              { step: 1, title: 'Choisir', desc: 'Sélectionnez votre catégorie et votre offre' },
               { step: 2, title: 'Valider', desc: 'Entrez votre Player ID Free Fire' },
               { step: 3, title: 'Payer', desc: 'Effectuez le paiement de manière sécurisée' },
               { step: 4, title: 'Recevoir', desc: 'Recevez vos Diamonds instantanément' },

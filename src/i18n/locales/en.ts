@@ -38,6 +38,14 @@ export const en = {
     mena: 'Middle East & North Africa',
     select: 'Select',
   },
+  home: {
+    catalogEyebrow: 'Live FazerCards catalog',
+    catalogTitle: 'Every real category, every real offer',
+    catalogSubtitle: 'The full FazerCards catalog, loaded live from our suppliers, category by category.',
+    priceUsd: 'Price (USD)',
+    priceHtg: 'Price (HTG)',
+    viewFullCatalog: 'Open the full catalog page',
+  },
   products: {
     title: 'Free Fire Diamonds',
     subtitle: 'Choose your region and select your offer.',
