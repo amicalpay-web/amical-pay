@@ -183,10 +183,10 @@ export function MobileMenu({
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
-              <Link to="/account" onClick={onClose} className="rounded-xl border border-white/10 px-3 py-3 text-center text-sm font-semibold text-white transition hover:border-amical-orange/60">
+              <Link to="/login" onClick={onClose} className="rounded-xl border border-white/10 px-3 py-3 text-center text-sm font-semibold text-white transition hover:border-amical-orange/60">
                 {labels.login}
               </Link>
-              <Link to="/account" onClick={onClose} className="rounded-xl bg-amical-orange px-3 py-3 text-center text-sm font-semibold text-white transition hover:bg-amical-orange-dark">
+              <Link to="/signup" onClick={onClose} className="rounded-xl bg-amical-orange px-3 py-3 text-center text-sm font-semibold text-white transition hover:bg-amical-orange-dark">
                 {labels.signup}
               </Link>
             </div>

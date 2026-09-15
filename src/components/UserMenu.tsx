@@ -4,6 +4,7 @@ import {
   ChevronDown,
   CircleUserRound,
   LifeBuoy,
+  LogIn,
   LogOut,
   Receipt,
   ShoppingBag,
@@ -15,10 +16,11 @@ import type { HeaderLabels } from './Header'
 interface UserMenuProps {
   userLabel: string
   labels: HeaderLabels
+  isAuthenticated: boolean
   onLogout: () => Promise<void>
 }
 
-export function UserMenu({ userLabel, labels, onLogout }: UserMenuProps) {
+export function UserMenu({ userLabel, labels, isAuthenticated, onLogout }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -33,13 +35,18 @@ export function UserMenu({ userLabel, labels, onLogout }: UserMenuProps) {
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [])
 
-  const menuItems = [
-    { to: '/account', label: labels.profile, icon: UserRound },
-    { to: '/track-order', label: labels.orders, icon: ShoppingBag },
-    { to: '/account#balance', label: labels.balance, icon: WalletCards },
-    { to: '/track-order#transactions', label: labels.transactions, icon: Receipt },
-    { to: '/support', label: labels.support, icon: LifeBuoy },
-  ]
+  const menuItems = isAuthenticated
+    ? [
+        { to: '/account', label: labels.profile, icon: UserRound },
+        { to: '/track-order', label: labels.orders, icon: ShoppingBag },
+        { to: '/account#balance', label: labels.balance, icon: WalletCards },
+        { to: '/track-order#transactions', label: labels.transactions, icon: Receipt },
+        { to: '/support', label: labels.support, icon: LifeBuoy },
+      ]
+    : [
+        { to: '/login', label: labels.login, icon: LogIn },
+        { to: '/signup', label: labels.signup, icon: UserRound },
+      ]
 
   return (
     <div className="relative" ref={menuRef}>
@@ -81,20 +88,22 @@ export function UserMenu({ userLabel, labels, onLogout }: UserMenuProps) {
               </Link>
             ))}
           </nav>
-          <div className="border-t border-white/10 pt-1">
-            <button
-              type="button"
-              role="menuitem"
-              onClick={async () => {
-                setOpen(false)
-                await onLogout()
-              }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
-            >
-              <LogOut size={17} />
-              {labels.logout}
-            </button>
-          </div>
+          {isAuthenticated && (
+            <div className="border-t border-white/10 pt-1">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={async () => {
+                  setOpen(false)
+                  await onLogout()
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+              >
+                <LogOut size={17} />
+                {labels.logout}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

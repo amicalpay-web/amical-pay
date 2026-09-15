@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   ChevronDown,
-  CircleUserRound,
   Menu,
   Search,
   X,
@@ -207,25 +206,23 @@ function Header() {
             <ChevronDown size={13} className="text-gray-500" />
           </label>
 
-          {isAuthenticated ? (
-            <div className="hidden md:block">
-              <UserMenu userLabel={userLabel} labels={labels} onLogout={handleLogout} />
-            </div>
-          ) : (
-            <div className="hidden items-center gap-2 md:flex">
-              <Link to="/login" className="rounded-xl px-3 py-2 text-sm font-semibold text-gray-300 transition hover:text-white">{labels.login}</Link>
-              <Link to="/signup" className="rounded-xl bg-amical-orange px-3.5 py-2 text-sm font-semibold text-white shadow-lg shadow-amical-orange/10 transition hover:bg-amical-orange-dark">{labels.signup}</Link>
-            </div>
-          )}
+          <div className="hidden md:block">
+            <UserMenu
+              userLabel={userLabel}
+              labels={labels}
+              isAuthenticated={isAuthenticated}
+              onLogout={handleLogout}
+            />
+          </div>
 
-          <button
-            type="button"
-            aria-label={labels.accountMenu}
-            onClick={() => setMobileOpen(true)}
-            className="rounded-xl p-2 text-gray-300 transition hover:bg-white/[0.06] hover:text-white md:hidden"
-          >
-            <CircleUserRound size={20} strokeWidth={1.8} />
-          </button>
+          <div className="md:hidden">
+            <UserMenu
+              userLabel={userLabel}
+              labels={labels}
+              isAuthenticated={isAuthenticated}
+              onLogout={handleLogout}
+            />
+          </div>
         </div>
       </div>
 
