@@ -30,6 +30,13 @@ const FAZER_API_BASE = (config.FAZER_API_BASE_URL || 'https://api.fzr.cards/api/
 const FAZER_API_KEY = config.FAZER_API_KEY
 const REQUEST_TIMEOUT = 30000 // 30 seconds
 const RATE_LIMIT_RETRIES = 5
+type JsonRecord = Record<string, unknown>
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonRecord
+    : {}
+}
 
 /**
  * Create headers for FazerCards API requests
@@ -77,7 +84,7 @@ async function fazerRequest<T>(
         signal: controller.signal,
       })
 
-      const data = (await response.json()) as any
+      const data = asRecord(await response.json())
 
       if (response.status === 429 && attempt < RATE_LIMIT_RETRIES) {
         const retryAfterHeader = response.headers.get('retry-after')
@@ -92,14 +99,16 @@ async function fazerRequest<T>(
       }
 
       if (!response.ok) {
+        const providerMessage = typeof data.message === 'string' ? data.message : undefined
+        const providerError = typeof data.error === 'string' ? data.error : undefined
         const error: FazerApiError = new Error(
-          data?.message || data?.error || `FazerCards API error: ${response.status}`
+          providerMessage || providerError || `FazerCards API error: ${response.status}`
         ) as FazerApiError
         error.statusCode = response.status
         error.status = response.status
-        error.fazerId = data?.id
-        error.fazerCode = data?.code
-        error.fazerMessage = data?.message || data?.error
+        error.fazerId = typeof data.id === 'string' ? data.id : undefined
+        error.fazerCode = typeof data.code === 'string' ? data.code : undefined
+        error.fazerMessage = providerMessage || providerError
 
         console.error('❌ FazerCards API Error:', {
           status: response.status,
@@ -248,7 +257,10 @@ export async function validatePlayer(
 }
 
 const CATALOG_CACHE_TTL = 5 * 60 * 1000
-const CATALOG_CONCURRENCY = 1
+// FazerCards exposes hundreds of categories. Serial loading makes the public
+// catalog exceed Render's proxy timeout, while an unbounded fan-out triggers
+// upstream rate limits. Eight workers keeps the full catalog responsive.
+const CATALOG_CONCURRENCY = 8
 let catalogCache: { snapshot: FazerCatalogSnapshot; expiresAt: number } | undefined
 let catalogRequest: Promise<FazerCatalogSnapshot> | undefined
 
@@ -265,10 +277,9 @@ async function fetchCompleteCatalog(): Promise<FazerCatalogSnapshot> {
   let nextIndex = 0
 
   async function worker(): Promise<void> {
-    while (true) {
+    while (nextIndex < categories.length) {
       const index = nextIndex
       nextIndex += 1
-      if (index >= categories.length) return
 
       const category = categories[index]
       try {
@@ -491,7 +502,9 @@ export async function testConnection(): Promise<FazerConnectionTestResult> {
 
     console.log(`✅ FazerCards connection test PASSED`)
   } catch (error) {
-    const err = error as any
+    const err: FazerApiError = error instanceof Error
+      ? error as FazerApiError
+      : new Error('Unknown FazerCards error') as FazerApiError
 
     // Determine the type of error
     if (err.statusCode === 401 || err.statusCode === 403) {
