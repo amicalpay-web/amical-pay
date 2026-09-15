@@ -1,0 +1,77 @@
+<svg width="1000" height="1000" viewBox="0 0 1000 1000" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>AmicalPay</title>
+  <defs>
+    <linearGradient id="edgeTop" gradientUnits="userSpaceOnUse" x1="285" y1="127.6" x2="715" y2="127.6">
+      <stop offset="0" stop-color="#FF7A1A"/>
+      <stop offset="1" stop-color="#FF8C1A"/>
+    </linearGradient>
+    <linearGradient id="edgeUpperRight" gradientUnits="userSpaceOnUse" x1="715" y1="127.6" x2="930" y2="500">
+      <stop offset="0" stop-color="#FF8C1A"/>
+      <stop offset="1" stop-color="#FF4D2E"/>
+    </linearGradient>
+    <linearGradient id="edgeLowerRight" gradientUnits="userSpaceOnUse" x1="930" y1="500" x2="715" y2="872.4">
+      <stop offset="0" stop-color="#FF4D2E"/>
+      <stop offset="1" stop-color="#EC1E8C"/>
+    </linearGradient>
+    <linearGradient id="edgeBottom" gradientUnits="userSpaceOnUse" x1="715" y1="872.4" x2="285" y2="872.4">
+      <stop offset="0" stop-color="#EC1E8C"/>
+      <stop offset="1" stop-color="#7B2FF7"/>
+    </linearGradient>
+    <linearGradient id="edgeLowerLeft" gradientUnits="userSpaceOnUse" x1="285" y1="872.4" x2="70" y2="500">
+      <stop offset="0" stop-color="#7B2FF7"/>
+      <stop offset="1" stop-color="#2E86FF"/>
+    </linearGradient>
+    <linearGradient id="edgeUpperLeft" gradientUnits="userSpaceOnUse" x1="70" y1="500" x2="285" y2="127.6">
+      <stop offset="0" stop-color="#2E86FF"/>
+      <stop offset="1" stop-color="#FF7A1A"/>
+    </linearGradient>
+    <linearGradient id="aFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF3B1A"/>
+      <stop offset="1" stop-color="#FF9500"/>
+    </linearGradient>
+    <linearGradient id="aFold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF5A1A"/>
+      <stop offset="1" stop-color="#E31A1A"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="none" stroke-width="34" stroke-linecap="round">
+    <path d="M285,127.6 L715,127.6" stroke="url(#edgeTop)"/>
+    <path d="M715,127.6 L930,500" stroke="url(#edgeUpperRight)"/>
+    <path d="M930,500 L715,872.4" stroke="url(#edgeLowerRight)"/>
+    <path d="M715,872.4 L285,872.4" stroke="url(#edgeBottom)"/>
+    <path d="M285,872.4 L70,500" stroke="url(#edgeLowerLeft)"/>
+    <path d="M70,500 L285,127.6" stroke="url(#edgeUpperLeft)"/>
+  </g>
+
+  <path d="
+    M500,195
+    C475,195 458,208 448,232
+    L308,700
+    C296,742 316,772 358,772
+    C388,772 408,754 420,722
+    L468,565
+    L500,462
+    L532,565
+    L580,722
+    C592,754 612,772 642,772
+    C684,772 704,742 692,700
+    L552,232
+    C542,208 525,195 500,195
+    Z" fill="url(#aFill)"/>
+
+  <path d="
+    M445,528
+    L562,528
+    C578,528 590,540 597,558
+    L560,652
+    L445,616
+    Z" fill="url(#aFold)"/>
+
+  <path d="
+    M445,528
+    L468,562
+    L445,616
+    L426,588
+    Z" fill="#200800"/>
+</svg>
