@@ -346,7 +346,7 @@ export function FazerHomeCatalog() {
                                 <div>
                                   <p className="text-xs text-gray-400">{t('home.priceHtg')}</p>
                                   <p className="text-lg font-bold text-white">
-                                    G{product.sellingPriceHtg.toFixed(2)}
+                                    HTG {product.sellingPriceHtg.toFixed(2)}
                                   </p>
                                 </div>
                               </div>
