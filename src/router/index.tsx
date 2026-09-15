@@ -11,6 +11,7 @@ import Account from '@/pages/Account'
 import FAQ from '@/pages/FAQ'
 import Support from '@/pages/Support'
 import Auth from '@/pages/Auth'
+import NotFound from '@/pages/NotFound'
 
 function Router() {
   return (
@@ -28,7 +29,7 @@ function Router() {
       <Route path="/signup" element={<Auth />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/support" element={<Support />} />
-      <Route path="*" element={<Home />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }

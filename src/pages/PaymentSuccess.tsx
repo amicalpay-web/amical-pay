@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, Card } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 
 function PaymentSuccess() {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ function PaymentSuccess() {
 
   return (
     <div className="min-h-screen bg-amical-dark flex items-center justify-center px-4 py-12">
+      <SeoHead title="Statut du paiement" path="/payment-success" noindex />
+
       <Card className="w-full max-w-lg text-center">
         <div className="text-6xl mb-4">{successful ? '✅' : '⚠️'}</div>
         <h1 className="text-3xl font-bold text-white mb-3">
