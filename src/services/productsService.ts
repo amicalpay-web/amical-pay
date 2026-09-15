@@ -36,8 +36,16 @@ async function fetchCatalogFromApi(): Promise<FazerCatalogResponse> {
   return (await response.json()) as FazerCatalogResponse
 }
 
+async function fetchCategoryProductsFromApi(categoryId: string): Promise<Product[]> {
+  const response = await fetch(apiUrl(`/api/products/catalog/${encodeURIComponent(categoryId)}`))
+  if (!response.ok) await parseError(response, 'Category catalog API')
+  const data = await response.json() as { products?: Product[] }
+  return Array.isArray(data.products) ? data.products : []
+}
+
 export const productsService = {
   getCatalog: fetchCatalogFromApi,
+  getCategoryProducts: fetchCategoryProductsFromApi,
 
   getAllProducts: async (): Promise<Product[]> => {
     const catalog = await fetchCatalogFromApi()
