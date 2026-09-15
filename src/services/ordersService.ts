@@ -1,5 +1,6 @@
 import { Order, OrderStatus, PaymentMethod, Product } from '@/types'
 import { productsService } from './productsService'
+import { authService } from './index'
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
@@ -83,11 +84,16 @@ async function parseResponse(response: Response): Promise<ApiOrder | ApiOrder[]>
   return payload as ApiOrder | ApiOrder[]
 }
 
+async function authHeaders(): Promise<HeadersInit> {
+  const token = await authService.getAccessToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export const ordersService = {
   createOrder: async (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Promise<Order> => {
     const response = await fetch(apiUrl('/api/orders'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({
         product_id: orderData.product.id,
         player_id: orderData.playerId,
@@ -116,7 +122,10 @@ export const ordersService = {
   },
 
   getOrdersByPlayerId: async (playerId: string): Promise<Order[]> => {
-    const response = await fetch(apiUrl(`/api/orders/player/${encodeURIComponent(playerId)}`))
+    void playerId
+    const response = await fetch(apiUrl('/api/orders/me'), {
+      headers: await authHeaders(),
+    })
     const payload = await parseResponse(response) as ApiOrder[]
     return Promise.all(payload.map((order) => toOrder(order)))
   },
