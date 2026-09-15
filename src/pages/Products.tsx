@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Gamepad2, ChevronDown } from 'lucide-react'
+import { Gamepad2 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button, Card, LoadingSpinner } from '@/components'
+import { CategoryDropdown } from '@/components/CategoryDropdown'
 import { productsService } from '@/services/productsService'
 import type { FazerCatalogItem, Product } from '@/types'
 
@@ -305,63 +306,48 @@ function Products() {
   }
 
   return (
-    <main className="min-h-screen bg-amical-dark px-4 py-10 sm:py-14">
+    <main className="min-h-screen bg-amical-dark px-4 py-6 sm:py-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mx-auto mb-10 max-w-2xl text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-amical-orange">
-            {t('products.eyebrow')}
-          </p>
-          <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">{t('products.title')}</h1>
-          <p className="text-gray-400">{t('products.subtitle')}</p>
+        {/* Compact header: eyebrow + selected game + 3D category switcher in one raised bar,
+            replacing the old separate hero block + label to shorten the page. */}
+        <header className="mb-6 flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-amical-dark-secondary to-amical-dark p-4 shadow-[0_18px_36px_-20px_rgba(0,0,0,0.8)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex items-center gap-3">
+            {selectedCategory.category.image_url ? (
+              <img
+                src={selectedCategory.category.image_url}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover shadow-lg shadow-black/40"
+              />
+            ) : (
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-amical-dark-tertiary text-amical-orange shadow-lg shadow-black/40">
+                <Gamepad2 size={22} />
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amical-orange">
+                {t('products.eyebrow')}
+              </p>
+              <h1 className="truncate text-xl font-bold text-white sm:text-2xl">
+                {selectedCategory.category.category_name}
+              </h1>
+            </div>
+          </div>
+
+          <CategoryDropdown
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelect={selectCategory}
+            disabled={Boolean(isLoadingOffers)}
+            label={t('products.otherGames')}
+            ariaLabel={t('products.chooseGame')}
+          />
         </header>
 
         <section aria-labelledby="selected-game-title" className="scroll-mt-8">
-          <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-start gap-4">
-              {selectedCategory.category.image_url ? (
-                <img
-                  src={selectedCategory.category.image_url}
-                  alt=""
-                  className="h-14 w-14 rounded-xl border border-white/10 object-cover"
-                />
-              ) : (
-                <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-amical-dark-secondary text-amical-orange">
-                  <Gamepad2 size={24} />
-                </span>
-              )}
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  {t('products.selectedGame')}
-                </p>
-                <h2 id="selected-game-title" className="text-2xl font-bold text-white">
-                  {selectedCategory.category.category_name}
-                </h2>
-              </div>
-            </div>
-
-            <label className="relative block w-full sm:w-72">
-              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                {t('products.otherGames')}
-              </span>
-              <select
-                value={selectedCategoryId}
-                onChange={(event) => selectCategory(event.target.value)}
-                disabled={Boolean(isLoadingOffers)}
-                className="w-full appearance-none rounded-xl border border-white/10 bg-amical-dark-secondary px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-amical-orange disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label={t('products.chooseGame')}
-              >
-                {categories.map((category) => (
-                  <option key={category.category.category_id} value={category.category.category_id} className="bg-[#171717]">
-                    {category.category.category_name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="pointer-events-none absolute bottom-3.5 right-3 text-gray-500" />
-            </label>
-          </div>
+          <h2 id="selected-game-title" className="sr-only">{selectedCategory.category.category_name}</h2>
 
           {selectedCategory.category.description && (
-            <p className="mb-6 max-w-3xl whitespace-pre-line text-gray-400">
+            <p className="mb-6 max-w-3xl whitespace-pre-line text-sm text-gray-400">
               {selectedCategory.category.description}
             </p>
           )}
@@ -405,7 +391,14 @@ function Products() {
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 {selectedCategory.products.map((product) => (
-                  <Card key={product.id} className="flex flex-col">
+                  <Card
+                    key={product.id}
+                    className="group relative flex flex-col overflow-hidden transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_24px_44px_-18px_rgba(0,0,0,0.65)]"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-white/[0.05] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    />
                     {product.image && (
                       <img src={product.image} alt="" className="mb-4 h-32 w-full rounded-lg object-cover" />
                     )}
@@ -418,7 +411,7 @@ function Products() {
                           )}
                         </div>
                         {product.popular && (
-                          <span className="rounded-full bg-amical-orange px-3 py-1 text-xs font-bold text-white">
+                          <span className="rounded-full bg-amical-orange px-3 py-1 text-xs font-bold text-white shadow-md shadow-amical-orange/30">
                             {t('products.popular')}
                           </span>
                         )}
