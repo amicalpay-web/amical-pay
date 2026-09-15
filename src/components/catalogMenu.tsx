@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Flame,
-  Gamepad2,
   Gift,
   KeyRound,
   Package,

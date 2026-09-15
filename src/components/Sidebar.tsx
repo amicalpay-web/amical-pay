@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronRight, Flame, LoaderCircle } from 'lucide-react'
+import { ChevronRight, Flame, Loader2 } from 'lucide-react'
 import { productsService } from '@/services/productsService'
 import { resolveCatalogMenuItems } from './catalogMenu'
 import type { FazerCatalogItem } from '@/types'
@@ -76,7 +76,7 @@ export function Sidebar() {
 
             {catalogLoading && (
               <p className="flex items-center gap-2 px-3 py-2 text-xs text-gray-500">
-                <LoaderCircle size={14} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
                 Chargement…
               </p>
             )}
