@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import type { HeaderLabels } from './Header'
+import logo from '@/assets/logo.svg'
 
 interface MobileMenuProps {
   open: boolean
@@ -122,7 +123,7 @@ export function MobileMenu({
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amical-orange text-sm font-black text-white shadow-lg shadow-amical-orange/20">A</span>
+            <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0" />
             <span className="text-sm font-black tracking-[0.2em] text-white">AMICAL<span className="text-amical-orange">PAY</span></span>
           </Link>
           <button

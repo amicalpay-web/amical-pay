@@ -96,34 +96,6 @@ function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-amical-dark-tertiary py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <h4 className="text-lg font-bold text-amical-orange mb-4">AmicalPay</h4>
-              <p className="text-gray-400 text-sm">Votre plateforme de confiance pour les Diamonds Free Fire</p>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-amical-orange">FAQ</a></li>
-                <li><a href="#" className="hover:text-amical-orange">Support</a></li>
-                <li><a href="#" className="hover:text-amical-orange">Conditions</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <p className="text-gray-400 text-sm">📧 support@amicalpay.com</p>
-              <p className="text-gray-400 text-sm">📱 WhatsApp: +50943882372</p>
-            </div>
-          </div>
-          <div className="border-t border-amical-dark-secondary pt-8 text-center text-gray-500 text-sm">
-            <p>&copy; 2024 AmicalPay. {t('footer.rights')}</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

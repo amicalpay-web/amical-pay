@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { authService } from '@/services'
+import logo from '@/assets/logo.svg'
 import { MobileMenu } from './MobileMenu'
 import { UserMenu } from './UserMenu'
 
@@ -124,10 +125,7 @@ function readStoredUserLabel(): string {
 function Brand() {
   return (
     <span className="flex items-center gap-2.5">
-      <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-amical-orange text-sm font-black text-white shadow-lg shadow-amical-orange/20">
-        <span className="absolute -right-1 -top-2 h-5 w-5 rounded-full bg-white/20" />
-        A
-      </span>
+      <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0" />
       <span className="text-[13px] font-black tracking-[0.2em] text-white sm:text-sm">AMICAL<span className="text-amical-orange">PAY</span></span>
     </span>
   )
