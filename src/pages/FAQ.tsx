@@ -1,4 +1,5 @@
 import { Card } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 
 function FAQ() {
   const faqs = [
@@ -22,6 +23,12 @@ function FAQ() {
 
   return (
     <div className="min-h-screen bg-amical-dark py-12 px-4">
+      <SeoHead
+        title="Questions fréquentes"
+        description="Livraison, méthodes de paiement (MonCash, NatCash, PayPal), remboursement : toutes les réponses à vos questions sur Amical Pay."
+        path="/faq"
+      />
+
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-8">Questions fréquentes</h1>
 
