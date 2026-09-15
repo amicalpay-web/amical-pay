@@ -26,8 +26,7 @@ async function validateIfRequired(
 
   // This lookup is deliberately made only on the purchase path. Catalogue
   // loading never depends on getPlayerValidationCatalog().
-  const validationCategory = (await fazer.getPlayerValidationCatalog())
-    .find((category) => category.category_id === categoryId)
+  const validationCategory = await fazer.getValidationCategoryForTopup(categoryId)
 
   if (!validationCategory || validationCategory.fields.length === 0) {
     return { required: false }
