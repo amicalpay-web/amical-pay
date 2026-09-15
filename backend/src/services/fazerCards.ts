@@ -144,32 +144,48 @@ async function fazerRequest<T>(
  * The API is cursor-paginated; collect every page before resolving a region.
  */
 export async function getCategories(): Promise<FazerCategory[]> {
-  const categories: FazerCategory[] = []
-  let cursor: string | undefined
+  if (categoriesCache && categoriesCache.expiresAt > Date.now()) {
+    return categoriesCache.categories
+  }
 
-  do {
-    const query = new URLSearchParams({ limit: '100' })
-    if (cursor) query.set('cursor', cursor)
+  if (!categoriesRequest) {
+    categoriesRequest = (async () => {
+      const categories: FazerCategory[] = []
+      let cursor: string | undefined
 
-    const response = await fazerRequest<FazerTopupCatalogPage>(
-      'GET',
-      `/topups?${query.toString()}`
-    )
+      do {
+        const query = new URLSearchParams({ limit: '100' })
+        if (cursor) query.set('cursor', cursor)
 
-    const items = Array.isArray(response.items) ? response.items : []
-    categories.push(...items.map((item) => ({
-      category_id: item.category_id,
-      category_name: item.name,
-      name: item.name,
-      description: item.note,
-      image_url: item.imageurl ?? undefined,
-    })))
+        const response = await fazerRequest<FazerTopupCatalogPage>(
+          'GET',
+          `/topups?${query.toString()}`
+        )
 
-    cursor = response.meta?.has_more ? response.meta.next_cursor : undefined
-  } while (cursor)
+        const items = Array.isArray(response.items) ? response.items : []
+        categories.push(...items.map((item) => ({
+          category_id: item.category_id,
+          category_name: item.name,
+          name: item.name,
+          description: item.note,
+          image_url: item.imageurl ?? undefined,
+        })))
 
-  console.log(`✅ Fetched ${categories.length} FazerCards top-up categories`)
-  return categories
+        cursor = response.meta?.has_more ? response.meta.next_cursor : undefined
+      } while (cursor)
+
+      console.log(`✅ Fetched ${categories.length} FazerCards top-up categories`)
+      categoriesCache = {
+        categories,
+        expiresAt: Date.now() + CATEGORY_CACHE_TTL,
+      }
+      return categories
+    })().finally(() => {
+      categoriesRequest = undefined
+    })
+  }
+
+  return categoriesRequest
 }
 
 /**
@@ -257,10 +273,13 @@ export async function validatePlayer(
 }
 
 const CATALOG_CACHE_TTL = 5 * 60 * 1000
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000
 // FazerCards exposes hundreds of categories. Serial loading makes the public
 // catalog exceed Render's proxy timeout, while an unbounded fan-out triggers
 // upstream rate limits. Eight workers keeps the full catalog responsive.
 const CATALOG_CONCURRENCY = 8
+let categoriesCache: { categories: FazerCategory[]; expiresAt: number } | undefined
+let categoriesRequest: Promise<FazerCategory[]> | undefined
 let catalogCache: { snapshot: FazerCatalogSnapshot; expiresAt: number } | undefined
 let catalogRequest: Promise<FazerCatalogSnapshot> | undefined
 
