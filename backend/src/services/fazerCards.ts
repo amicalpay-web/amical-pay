@@ -259,10 +259,10 @@ export async function getPlayerValidationCatalog(): Promise<FazerValidationCateg
 
 function normalizeValidationKey(value: string): string {
   return value
-    .toLowerCase()
-    .replace(/[()_\\-]/g, ' ')
-    .replace(/\\b(global|exclusive|promo|special)\\b/g, ' ')
-    .replace(/\\s+/g, ' ')
+    .toLocaleLowerCase()
+    .replace(/[()_-]+/g, ' ')
+    .replace(/\b(global|exclusive|promo|special)\b/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim()
 }
 
@@ -271,27 +271,29 @@ export async function getValidationCategoryForTopup(
   categoryName?: string
 ): Promise<FazerValidationCategory | undefined> {
   const validationCategories = await getPlayerValidationCatalog()
-  const normalizedId = normalizeValidationKey(categoryId)
-  const normalizedName = normalizeValidationKey(categoryName || '')
-
-  const exact = validationCategories.find((category) =>
-    category.category_id === categoryId || normalizeValidationKey(category.category_id) === normalizedName
-  )
-  if (exact) return exact
+  const candidates = [categoryId, categoryName || '']
+    .map(normalizeValidationKey)
+    .filter(Boolean)
 
   return validationCategories
-    .map((category) => ({
-      category,
-      key: normalizeValidationKey(category.category_id),
-      nameKey: normalizeValidationKey(category.name),
-    }))
-    .filter(({ key, nameKey }) => [key, nameKey].some((candidate) =>
-      candidate === normalizedId ||
-      candidate === normalizedName ||
-      normalizedId.startsWith(candidate + ' ') ||
-      normalizedName.startsWith(candidate + ' ')
-    ))
-    .sort((left, right) => Math.max(right.key.length, right.nameKey.length) - Math.max(left.key.length, left.nameKey.length))[0]?.category
+    .map((category) => {
+      const categoryKeys = [category.category_id, category.name]
+        .map(normalizeValidationKey)
+        .filter(Boolean)
+      let score = 0
+
+      for (const candidate of candidates) {
+        for (const categoryKey of categoryKeys) {
+          if (candidate === categoryKey) score = Math.max(score, 1000 + categoryKey.length)
+          else if (candidate.startsWith(categoryKey + ' ')) score = Math.max(score, 500 + categoryKey.length)
+          else if (categoryKey.startsWith(candidate + ' ')) score = Math.max(score, 250 + candidate.length)
+        }
+      }
+
+      return { category, score }
+    })
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score)[0]?.category
 }
 
 /**
@@ -317,11 +319,29 @@ export async function validatePlayer(
   }
 
   const acceptedKeys = new Set(
-    validationCategory.fields.map((field) => field.key).filter((key): key is string => Boolean(key))
+    validationCategory.fields
+      .map((field) => field.key || field.name)
+      .filter((key): key is string => Boolean(key))
   )
   const validationFields = Object.fromEntries(
     Object.entries(fields).filter(([key]) => acceptedKeys.has(key))
   )
+  const requiredKeys = validationCategory.fields
+    .filter((field) => field.required !== false)
+    .map((field) => field.key || field.name)
+    .filter((key): key is string => Boolean(key))
+  const missingKeys = requiredKeys.filter((key) => {
+    const value = validationFields[key]
+    return value === undefined || value === null || String(value).trim() === ''
+  })
+
+  if (missingKeys.length > 0) {
+    const error = new Error('The required FazerCards account identifiers are missing: ' + missingKeys.join(', ')) as FazerApiError
+    error.statusCode = 422
+    error.status = 422
+    throw error
+  }
+
   if (Object.keys(validationFields).length === 0) {
     const error = new Error('The required FazerCards account identifiers are missing') as FazerApiError
     error.statusCode = 422
@@ -341,7 +361,7 @@ export async function validatePlayer(
   )
 
   if (!response.valid) {
-    const error = new Error('FazerCards could not confirm this player ID') as FazerApiError
+    const error = new Error('FazerCards could not confirm these account identifiers') as FazerApiError
     error.statusCode = 422
     error.status = 422
     throw error
