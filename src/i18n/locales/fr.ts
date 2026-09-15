@@ -18,7 +18,7 @@ export const fr = {
     success: 'Succès',
   },
   header: {
-    logo: 'AmicalPay',
+    logo: 'Amical Pay',
     home: 'Accueil',
     diamonds: 'Diamonds Free Fire',
     howItWorks: 'Comment ça marche',
@@ -163,7 +163,7 @@ export const fr = {
   },
   auth: {
     eyebrow: 'Espace client',
-    title: 'Votre compte AmicalPay',
+    title: 'Votre compte Amical Pay',
     subtitle: 'Connectez-vous pour suivre vos commandes et gérer votre profil.',
     loginTab: 'Se connecter',
     signupTab: 'Créer un compte',
