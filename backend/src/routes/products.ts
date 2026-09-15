@@ -10,6 +10,7 @@ import * as fazer from '../services/fazerCards.js'
 import {
   FazerCatalogItem,
   FazerOffer,
+  FazerValidationCategory,
   FazerValidationField,
 } from '../types/fazer.js'
 
@@ -47,11 +48,13 @@ function normalizeOffer(
   offer: FazerOffer,
   category: FazerCatalogItem['category'],
   fields: FazerValidationField[] = [],
-  index = 0
+  index = 0,
+  validationCategory?: FazerValidationCategory
 ): Record<string, unknown> {
   const price = Number(offer.price_usd ?? offer.price ?? 0)
   const offerFields = offer.fields || fields
-  const requiresPlayerValidation = isValidationCategory(offerFields)
+  const validationFields = validationCategory?.fields || []
+  const requiresPlayerValidation = isValidationCategory(validationFields)
   const region = inferRegion(category)
 
   return {
@@ -71,8 +74,9 @@ function normalizeOffer(
     source: 'fazer',
     metadata: offer.metadata || {},
     fazerFields: offerFields,
-    fazerValidationFields: requiresPlayerValidation ? offerFields : [],
+    fazerValidationFields: validationFields,
     fazerCategoryId: category.category_id,
+    fazerValidationCategoryId: validationCategory?.category_id,
     fazerOfferId: offer.offer_id,
     requiresPlayerValidation,
   }
@@ -169,8 +173,12 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       metadata: topupOffers.metadata,
     }
 
+    const validationCategory = await fazer.getValidationCategoryForTopup(
+      category.category_id,
+      category.category_name
+    )
     const products = item.offers.map((offer, index) =>
-      normalizeOffer(offer, category, item.fields, index)
+      normalizeOffer(offer, category, item.fields, index, validationCategory)
     )
 
     res.setHeader('Cache-Control', 'private, max-age=300')
@@ -222,7 +230,13 @@ router.get('/catalog/:categoryId', async (req: Request, res: Response, next: Nex
       source: 'fazer',
       category: item.category,
       products: item.offers.map((offer, index) =>
-        normalizeOffer(offer, item.category, item.fields, index)
+        normalizeOffer(
+          offer,
+          item.category,
+          item.fields,
+          index,
+          await fazer.getValidationCategoryForTopup(item.category.category_id, item.category.category_name)
+        )
       ),
       fields: item.fields || [],
     })
@@ -242,8 +256,12 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const item = await categoryWithOffers(match[1])
+    const validationCategory = await fazer.getValidationCategoryForTopup(
+      item.category.category_id,
+      item.category.category_name
+    )
     const product = item.offers
-      .map((offer, index) => normalizeOffer(offer, item.category, item.fields, index))
+      .map((offer, index) => normalizeOffer(offer, item.category, item.fields, index, validationCategory))
       .find((candidate) => candidate.id === req.params.id)
     if (!product) {
       res.status(404).json({ error: 'Product not found', id: req.params.id })
