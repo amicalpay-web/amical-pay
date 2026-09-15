@@ -7,7 +7,6 @@ import {
 } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { useAuth } from '@/contexts/AuthContext'
-import logo from '@/assets/logo.svg'
 import { MobileMenu } from './MobileMenu'
 import { UserMenu } from './UserMenu'
 
@@ -127,12 +126,7 @@ const translations: Record<'fr' | 'en', HeaderLabels> = {
 }
 
 function Brand() {
-  return (
-    <span className="flex items-center gap-2.5">
-      <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0" />
-      <span className="text-[13px] font-black tracking-[0.2em] text-white sm:text-sm">AMICAL<span className="text-amical-orange">PAY</span></span>
-    </span>
-  )
+  return <img src="/amical-pay-icon.webp" alt="Amical Pay" className="h-10 w-10 shrink-0" />
 }
 
 function Header() {

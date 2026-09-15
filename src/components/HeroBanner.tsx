@@ -1,69 +1,46 @@
 import { useNavigate } from 'react-router-dom'
-import { Globe2, PlayCircle, ShieldCheck, Zap, Sparkles } from 'lucide-react'
+import { PlayCircle, Sparkles } from 'lucide-react'
 import { Button } from './Button'
 
 export function HeroBanner() {
   const navigate = useNavigate()
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1a1030] via-[#100a20] to-amical-dark px-6 py-10 sm:px-10 sm:py-14">
-      {/* Decorative color glows — keeps the hero vivid even without a licensed photo asset */}
+    <section
+      aria-labelledby="hero-title"
+      className="relative isolate min-h-[24rem] overflow-hidden rounded-2xl border border-white/10 bg-[#08090d] sm:min-h-[34rem]"
+    >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amical-orange/30 blur-3xl"
+        className="absolute inset-0 bg-[url('/amical-pay-hero.webp')] bg-cover bg-center"
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 right-10 h-72 w-72 rounded-full bg-amical-accent/20 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-purple-500/20 blur-3xl"
-      />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/10 to-transparent" />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10" />
 
-      <div className="relative z-10 max-w-xl">
-        <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-amical-orange/30 bg-amical-orange/10 px-3 py-1 text-xs font-semibold text-amical-orange">
-          <Sparkles size={13} />
-          Livraison instantanée 24/7
-        </div>
-
-        <p className="mb-3 bg-gradient-to-r from-white via-white to-amical-orange bg-clip-text text-4xl font-black italic tracking-tight text-transparent sm:text-5xl">
-          FREE FIRE
-        </p>
-        <p className="mb-6 text-gray-300">
-          Rechargez vos <span className="font-semibold text-white">Diamonds</span>,{' '}
-          <span className="font-semibold text-white">Passes</span> et{' '}
-          <span className="font-semibold text-white">Abonnements</span> Free Fire rapidement et en toute sécurité.
-        </p>
-
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-gray-200">
-            <Globe2 size={14} />
-            Région LATAM
+      <div className="relative z-10 flex min-h-[24rem] items-end justify-end p-4 sm:min-h-[34rem] sm:p-7 lg:p-9">
+        <div className="max-w-sm rounded-2xl border border-white/15 bg-black/55 p-4 shadow-2xl backdrop-blur-md sm:p-5">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amical-orange/40 bg-amical-orange/15 px-3 py-1 text-xs font-semibold text-orange-100">
+            <Sparkles size={13} />
+            Recharge Free Fire
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-gray-200">
-            <ShieldCheck size={14} className="text-amical-accent" />
-            Paiement sécurisé
+          <h1 id="hero-title" className="sr-only">Amical Pay — Diamonds Free Fire</h1>
+          <p className="text-sm leading-relaxed text-gray-100 sm:text-base">
+            Rechargez vos Diamonds, Passes et abonnements rapidement et en toute sécurité.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={() => navigate('/products?category=free_fire_latam')}>
+              Voir les offres →
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <span className="flex items-center gap-2">
+                <PlayCircle size={17} />
+                Comment ça marche
+              </span>
+            </Button>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-gray-200">
-            <Zap size={14} className="text-amical-orange" />
-            Traitement rapide
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={() => navigate('/products?category=free_fire_latam')}>
-            Voir les offres →
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            <span className="flex items-center gap-2">
-              <PlayCircle size={18} />
-              Comment ça marche
-            </span>
-          </Button>
         </div>
       </div>
     </section>
