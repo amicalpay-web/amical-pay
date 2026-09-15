@@ -38,11 +38,13 @@ function TrackOrder() {
     }
   }
 
+  // The initial query parameter is intentionally consumed once on mount.
   useEffect(() => {
     if (initialOrderNumber) {
       setOrderNumber(initialOrderNumber)
       handleSearch()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
