@@ -1,28 +1,56 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Gamepad2, Flame, ChevronDown } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
-import { Button, Card, Input, LoadingSpinner } from '@/components'
+import { Button, Card, LoadingSpinner } from '@/components'
 import { productsService } from '@/services/productsService'
 import { FazerCatalogItem } from '@/types'
 
-type CategoryLoadState = 'loading' | 'loaded' | 'error'
+type CategoryLoadState = 'idle' | 'loading' | 'loaded' | 'error'
 
 interface CatalogViewItem extends FazerCatalogItem {
   loadState: CategoryLoadState
+}
+
+const FEATURED_GAME_KEYWORDS = [
+  'free fire',
+  'mobile legends',
+  'pubg',
+  'valorant',
+  'roblox',
+  'fortnite',
+  'call of duty',
+  'minecraft',
+  'league of legends',
+  'fifa',
+]
+
+function isFeaturedCategory(category: CatalogViewItem): boolean {
+  const name = category.category.category_name.toLowerCase()
+  return FEATURED_GAME_KEYWORDS.some((keyword) => name.includes(keyword))
+}
+
+function getFeaturedCategories(categories: CatalogViewItem[]): CatalogViewItem[] {
+  const matches = categories.filter(isFeaturedCategory).slice(0, 4)
+  const selectedIds = new Set(matches.map((category) => category.category.category_id))
+  const fallback = categories
+    .filter((category) => !selectedIds.has(category.category.category_id))
+    .slice(0, Math.max(0, 4 - matches.length))
+  return [...matches, ...fallback]
 }
 
 function Products() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedCategoryId = searchParams.get('category') || ''
+  const initialRequestedCategoryId = useRef(requestedCategoryId)
   const { t } = useTranslation()
   const { currency } = useAppContext()
   const [categories, setCategories] = useState<CatalogViewItem[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loadingCatalog, setLoadingCatalog] = useState(true)
   const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
   const mountedRef = useRef(true)
 
   useEffect(() => () => {
@@ -33,7 +61,7 @@ function Products() {
     let active = true
 
     const loadCatalog = async () => {
-      setLoading(true)
+      setLoadingCatalog(true)
       setError('')
 
       try {
@@ -43,33 +71,23 @@ function Products() {
         const initialCategories = catalog.categories.map((category) => ({
           ...category,
           products: [],
-          loadState: 'loading' as const,
+          loadState: 'idle' as const,
         }))
         setCategories(initialCategories)
-        setLoading(false)
 
-        void productsService.getCatalogWithProducts(catalog, (update) => {
-          if (!active) return
-
-          setCategories((current) => current.map((category) =>
-            category.category.category_id === update.categoryId
-              ? {
-                ...category,
-                products: update.products,
-                error: update.error,
-                loadState: update.error ? 'error' : 'loaded',
-              }
-              : category
-          ))
-        }).catch((loadError: unknown) => {
-          if (active) {
-            setError(loadError instanceof Error ? loadError.message : t('products.catalogLoadError'))
-          }
-        })
+        const requestedCategoryExists = initialCategories.some((category) =>
+          category.category.category_id === initialRequestedCategoryId.current
+        )
+        const firstFeaturedCategory = getFeaturedCategories(initialCategories)[0]
+        const initialCategoryId = requestedCategoryExists
+          ? initialRequestedCategoryId.current
+          : firstFeaturedCategory?.category.category_id || initialCategories[0]?.category.category_id || ''
+        setSelectedCategoryId(initialCategoryId)
+        setLoadingCatalog(false)
       } catch (loadError: unknown) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : t('products.catalogLoadError'))
-          setLoading(false)
+          setLoadingCatalog(false)
         }
       }
     }
@@ -80,25 +98,25 @@ function Products() {
     }
   }, [t])
 
-
   useEffect(() => {
-    if (categories.length === 0) return
-
+    if (!requestedCategoryId || categories.length === 0 || requestedCategoryId === selectedCategoryId) return
     const categoryExists = categories.some((category) =>
       category.category.category_id === requestedCategoryId
     )
-    setSelectedCategoryId(categoryExists ? requestedCategoryId : '')
-  }, [requestedCategoryId, categories.length])
+    if (categoryExists) setSelectedCategoryId(requestedCategoryId)
+  }, [requestedCategoryId, categories, selectedCategoryId])
 
-  const retryCategory = async (categoryId: string) => {
+  const loadCategory = useCallback(async (categoryId: string, force = false) => {
+    if (!categoryId) return
+
     setCategories((current) => current.map((category) =>
       category.category.category_id === categoryId
-        ? { ...category, loadState: 'loading', error: undefined, products: [] }
+        ? { ...category, loadState: 'loading', error: undefined, products: force ? [] : category.products }
         : category
     ))
 
     try {
-      const products = await productsService.retryCategoryProducts(categoryId)
+      const products = await productsService[force ? 'retryCategoryProducts' : 'getCategoryProducts'](categoryId)
       if (!mountedRef.current) return
       setCategories((current) => current.map((category) =>
         category.category.category_id === categoryId
@@ -118,60 +136,33 @@ function Products() {
           : category
       ))
     }
-  }
+  }, [t])
 
-  const normalizedQuery = searchQuery.trim().toLowerCase()
-  const filteredProductsByCategory = useMemo(() => {
-    const productsByCategory = new Map<string, CatalogViewItem['products']>()
+  useEffect(() => {
+    const selectedCategory = categories.find((category) =>
+      category.category.category_id === selectedCategoryId
+    )
+    if (!selectedCategory || selectedCategory.loadState !== 'idle') return
+    void loadCategory(selectedCategoryId)
+  }, [categories, loadCategory, selectedCategoryId])
 
-    categories.forEach((category) => {
-      const products = normalizedQuery
-        ? category.products.filter((product) =>
-          product.name.toLowerCase().includes(normalizedQuery) ||
-          product.description.toLowerCase().includes(normalizedQuery) ||
-          product.categoryName?.toLowerCase().includes(normalizedQuery)
-        )
-        : category.products
-      productsByCategory.set(category.category.category_id, products)
-    })
-
-    return productsByCategory
-  }, [categories, normalizedQuery])
-
-  const visibleCategories = selectedCategoryId
-    ? categories.filter((category) => category.category.category_id === selectedCategoryId)
-    : categories
-  const loadedOfferCount = categories.reduce((total, category) => total + category.products.length, 0)
-  const allCategoriesLoaded = categories.every((category) => category.loadState !== 'loading')
-  const visibleOfferCount = visibleCategories.reduce(
-    (total, category) => total + (filteredProductsByCategory.get(category.category.category_id)?.length || 0),
-    0
+  const featuredCategories = useMemo(() => getFeaturedCategories(categories), [categories])
+  const selectedCategory = categories.find((category) =>
+    category.category.category_id === selectedCategoryId
   )
+  const isLoadingOffers = selectedCategory?.loadState === 'loading'
 
   const selectCategory = (categoryId: string) => {
-    const nextSearchParams = new URLSearchParams(searchParams)
-    if (categoryId) {
-      nextSearchParams.set('category', categoryId)
-    } else {
-      nextSearchParams.delete('category')
-    }
-    setSearchParams(nextSearchParams, { replace: true })
+    if (!categoryId || isLoadingOffers) return
     setSelectedCategoryId(categoryId)
-    if (!categoryId) {
-      window.requestAnimationFrame(() => {
-        document.getElementById('all-catalogs')?.scrollIntoView({ behavior: 'smooth' })
-      })
-      return
-    }
-
-    window.requestAnimationFrame(() => {
-      document.getElementById(`catalog-${categoryId}`)?.scrollIntoView({ behavior: 'smooth' })
-    })
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.set('category', categoryId)
+    setSearchParams(nextSearchParams, { replace: true })
   }
 
-  if (loading) {
+  if (loadingCatalog) {
     return (
-      <div className="min-h-screen bg-amical-dark py-12 px-4">
+      <div className="min-h-screen bg-amical-dark px-4 py-12">
         <LoadingSpinner fullScreen />
         <p className="sr-only">{t('products.catalogLoading')}</p>
       </div>
@@ -180,8 +171,8 @@ function Products() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-amical-dark py-12 px-4">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-amical-dark px-4 py-12">
+        <div className="mx-auto max-w-3xl">
           <Card>
             <p className="text-red-300" role="alert">{error}</p>
           </Card>
@@ -190,240 +181,241 @@ function Products() {
     )
   }
 
+  if (!selectedCategory) {
+    return (
+      <div className="min-h-screen bg-amical-dark px-4 py-12">
+        <div className="mx-auto max-w-3xl">
+          <Card>
+            <p className="text-center text-gray-400">{t('products.noGames')}</p>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-amical-dark py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-4xl font-bold text-white mb-2">{t('products.title')}</h1>
+    <main className="min-h-screen bg-amical-dark px-4 py-10 sm:py-14">
+      <div className="mx-auto max-w-6xl">
+        <header className="mx-auto mb-10 max-w-2xl text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-amical-orange">
+            {t('products.eyebrow')}
+          </p>
+          <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">{t('products.title')}</h1>
           <p className="text-gray-400">{t('products.subtitle')}</p>
         </header>
 
-        <section id="all-catalogs" className="mb-8">
-          <Card className="border-amical-orange/30">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white">{t('products.allCatalogs')}</h2>
-                <p className="text-gray-400 mt-1">
-                  {t('products.catalogSummary', {
-                    categories: categories.length,
-                    offers: loadedOfferCount,
-                  })}
-                </p>
-              </div>
-              {normalizedQuery && (
-                <p className="text-amical-orange font-semibold">
-                  {t('products.searchResults', { count: visibleOfferCount })}
-                </p>
-              )}
+        <section aria-labelledby="featured-games-title" className="mb-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-amical-orange">{t('products.selectionTitle')}</p>
+              <h2 id="featured-games-title" className="text-2xl font-bold text-white">
+                {t('products.featuredGames')}
+              </h2>
             </div>
-          </Card>
-        </section>
-
-        <section aria-labelledby="catalog-navigation-title" className="mb-10">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <h2 id="catalog-navigation-title" className="text-xl font-semibold text-white">
-              {t('products.categories')}
-            </h2>
-            <span className="text-sm text-gray-400">{t('products.viewCatalog')}</span>
+            <span className="hidden text-sm text-gray-500 sm:block">{t('products.selectionSubtitle')}</span>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              size="sm"
-              variant={selectedCategoryId ? 'secondary' : 'primary'}
-              aria-pressed={!selectedCategoryId}
-              onClick={() => selectCategory('')}
-            >
-              {t('products.allCatalogs')}
-            </Button>
-            {categories.map((category) => {
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {featuredCategories.map((category) => {
               const categoryId = category.category.category_id
+              const isSelected = categoryId === selectedCategoryId
               return (
-                <a
+                <button
                   key={categoryId}
-                  href={`#catalog-${categoryId}`}
+                  type="button"
                   onClick={() => selectCategory(categoryId)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition ${
-                    selectedCategoryId === categoryId
-                      ? 'border-amical-orange bg-amical-dark-secondary text-white'
-                      : 'border-amical-dark-tertiary text-gray-300 hover:border-amical-orange/50'
-                  }`}
-                  aria-current={selectedCategoryId === categoryId ? 'true' : undefined}
+                  disabled={Boolean(isLoadingOffers) && !isSelected}
+                  aria-pressed={isSelected}
+                  className={'group rounded-2xl border p-4 text-left transition ' + (
+                    isSelected
+                      ? 'border-amical-orange bg-amical-dark-secondary shadow-[0_0_0_1px_rgba(255,107,53,0.2)]'
+                      : 'border-white/10 bg-white/[0.03] hover:border-amical-orange/50 hover:bg-amical-dark-secondary'
+                  ) + (isLoadingOffers && !isSelected ? ' cursor-not-allowed opacity-50' : '')}
                 >
-                  <span className="font-semibold">{category.category.category_name}</span>
-                  <span className="block text-xs text-gray-400">
-                    {t('products.offersCount', { count: category.products.length })}
-                  </span>
-                </a>
+                  <div className="mb-4 flex items-start justify-between gap-2">
+                    {category.category.image_url ? (
+                      <img
+                        src={category.category.image_url}
+                        alt=""
+                        className="h-12 w-12 rounded-xl border border-white/10 object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-amical-dark-tertiary text-amical-orange">
+                        <Gamepad2 size={22} />
+                      </span>
+                    )}
+                    {isFeaturedCategory(category) && (
+                      <Flame size={16} className="text-amical-orange" aria-label={t('products.featured')} />
+                    )}
+                  </div>
+                  <p className="line-clamp-2 min-h-12 font-semibold text-white">
+                    {category.category.category_name}
+                  </p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {isSelected ? t('products.selectedGame') : t('products.chooseGame')}
+                  </p>
+                </button>
               )
             })}
           </div>
         </section>
 
-        <div className="mb-10 max-w-md">
-          <Input
-            label={t('common.search')}
-            placeholder={t('products.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </div>
+        <section aria-labelledby="selected-game-title" className="scroll-mt-8">
+          <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-start gap-4">
+              {selectedCategory.category.image_url ? (
+                <img
+                  src={selectedCategory.category.image_url}
+                  alt=""
+                  className="h-14 w-14 rounded-xl border border-white/10 object-cover"
+                />
+              ) : (
+                <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-amical-dark-secondary text-amical-orange">
+                  <Gamepad2 size={24} />
+                </span>
+              )}
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  {t('products.selectedGame')}
+                </p>
+                <h2 id="selected-game-title" className="text-2xl font-bold text-white">
+                  {selectedCategory.category.category_name}
+                </h2>
+              </div>
+            </div>
 
-        <div className="space-y-12">
-          {visibleCategories.map((category) => {
-            const categoryId = category.category.category_id
-            const filteredProducts = filteredProductsByCategory.get(categoryId) || []
-            const categoryDescription = category.category.description
-            const categoryImage = category.category.image_url
-
-            return (
-              <section
-                key={categoryId}
-                id={`catalog-${categoryId}`}
-                aria-labelledby={`catalog-title-${categoryId}`}
-                className="scroll-mt-8"
+            <label className="relative block w-full sm:w-72">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
+                {t('products.otherGames')}
+              </span>
+              <select
+                value={selectedCategoryId}
+                onChange={(event) => selectCategory(event.target.value)}
+                disabled={Boolean(isLoadingOffers)}
+                className="w-full appearance-none rounded-xl border border-white/10 bg-amical-dark-secondary px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-amical-orange disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={t('products.chooseGame')}
               >
-                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-5">
-                  <div className="flex gap-4 items-start">
-                    {categoryImage && (
-                      <img
-                        src={categoryImage}
-                        alt=""
-                        className="w-14 h-14 rounded-lg object-cover border border-amical-dark-tertiary"
-                      />
+                {categories.map((category) => (
+                  <option key={category.category.category_id} value={category.category.category_id} className="bg-[#171717]">
+                    {category.category.category_name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="pointer-events-none absolute bottom-3.5 right-3 text-gray-500" />
+            </label>
+          </div>
+
+          {selectedCategory.category.description && (
+            <p className="mb-6 max-w-3xl whitespace-pre-line text-gray-400">
+              {selectedCategory.category.description}
+            </p>
+          )}
+
+          {selectedCategory.loadState === 'loading' && (
+            <Card>
+              <LoadingSpinner size="sm" />
+              <p className="mt-3 text-center text-gray-400">{t('products.loadingGame')}</p>
+            </Card>
+          )}
+
+          {selectedCategory.loadState === 'error' && (
+            <Card className="border-amber-500/50">
+              <p className="text-amber-300" role="alert">{t('products.categoryLoadError')}</p>
+              {selectedCategory.error && <p className="mt-2 text-sm text-gray-400">{selectedCategory.error}</p>}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="mt-4"
+                onClick={() => void loadCategory(selectedCategoryId, true)}
+              >
+                {t('products.retry')}
+              </Button>
+            </Card>
+          )}
+
+          {selectedCategory.loadState === 'loaded' && selectedCategory.products.length === 0 && (
+            <Card>
+              <p className="text-gray-400">{t('products.noOffers')}</p>
+            </Card>
+          )}
+
+          {selectedCategory.loadState === 'loaded' && selectedCategory.products.length > 0 && (
+            <>
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <p className="text-sm text-gray-400">
+                  {t('products.loadedOffers', { count: selectedCategory.products.length })}
+                </p>
+                <p className="hidden text-xs text-gray-500 sm:block">{t('products.gameSelectionHint')}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {selectedCategory.products.map((product) => (
+                  <Card key={product.id} className="flex flex-col">
+                    {product.image && (
+                      <img src={product.image} alt="" className="mb-4 h-32 w-full rounded-lg object-cover" />
                     )}
-                    <div>
-                      <h2 id={`catalog-title-${categoryId}`} className="text-2xl font-bold text-white">
-                        {category.category.category_name}
-                      </h2>
-                      {categoryDescription && (
-                        <p className="text-gray-400 mt-1 whitespace-pre-line max-w-3xl">
-                          {categoryDescription}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-sm text-gray-400">
-                    {t('products.offersCount', { count: category.products.length })}
-                  </span>
-                </div>
-
-                {category.loadState === 'loading' && (
-                  <Card>
-                    <LoadingSpinner size="sm" />
-                    <p className="text-gray-400 text-center mt-3">{t('products.offersLoading')}</p>
-                  </Card>
-                )}
-
-                {category.loadState === 'error' && (
-                  <Card className="border-amber-500/50">
-                    <p className="text-amber-300" role="alert">{t('products.categoryLoadError')}</p>
-                    {category.error && <p className="text-gray-400 text-sm mt-2">{category.error}</p>}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="mt-4"
-                      onClick={() => void retryCategory(categoryId)}
-                    >
-                      {t('products.retry')}
-                    </Button>
-                  </Card>
-                )}
-
-                {category.loadState === 'loaded' && category.products.length === 0 && (
-                  <Card>
-                    <p className="text-gray-400">{t('products.noOffers')}</p>
-                  </Card>
-                )}
-
-                {category.loadState === 'loaded' && category.products.length > 0 && filteredProducts.length === 0 && (
-                  <Card>
-                    <p className="text-gray-400">{t('products.noSearchResults')}</p>
-                  </Card>
-                )}
-
-                {category.loadState === 'loaded' && filteredProducts.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProducts.map((product) => (
-                      <Card key={product.id} className="flex flex-col">
-                        {product.image && (
-                          <img
-                            src={product.image}
-                            alt=""
-                            className="w-full h-32 object-cover rounded-lg mb-4"
-                          />
+                    <div className="flex-1">
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-xl font-bold text-white">{product.name}</h3>
+                          {product.diamonds > 0 && (
+                            <p className="mt-1 font-semibold text-amical-orange">💎 {product.diamonds}</p>
+                          )}
+                        </div>
+                        {product.popular && (
+                          <span className="rounded-full bg-amical-orange px-3 py-1 text-xs font-bold text-white">
+                            {t('products.popular')}
+                          </span>
                         )}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-4 gap-3">
-                            <div>
-                              <h3 className="text-xl font-bold text-white">{product.name}</h3>
-                              {product.diamonds > 0 && (
-                                <p className="text-amical-orange font-semibold mt-1">💎 {product.diamonds}</p>
-                              )}
-                            </div>
-                            {product.popular && (
-                              <span className="bg-amical-orange text-white text-xs font-bold px-3 py-1 rounded-full">
-                                {t('products.popular')}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-400 text-sm mb-4 whitespace-pre-line">{product.description}</p>
+                      </div>
+                      <p className="mb-4 whitespace-pre-line text-sm text-gray-400">{product.description}</p>
+                    </div>
+
+                    <div className="border-t border-amical-dark-tertiary pt-4">
+                      <div className="mb-4 flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm text-gray-400">{t('products.price')}</p>
+                          <p className="text-2xl font-bold text-amical-orange">
+                            {currency === 'USD' ? '$' : 'G'}
+                            {currency === 'USD'
+                              ? product.sellingPriceUsd.toFixed(2)
+                              : product.sellingPriceHtg.toFixed(2)}
+                          </p>
                         </div>
-
-                        <div className="border-t border-amical-dark-tertiary pt-4">
-                          <div className="flex items-center justify-between mb-4 gap-4">
-                            <div>
-                              <p className="text-gray-400 text-sm">{t('products.price')}</p>
-                              <p className="text-2xl font-bold text-amical-orange">
-                                {currency === 'USD' ? '$' : 'G'}
-                                {currency === 'USD'
-                                  ? product.sellingPriceUsd.toFixed(2)
-                                  : product.sellingPriceHtg.toFixed(2)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-400 text-sm">{t('products.availability')}</p>
-                              <p className={`text-sm font-semibold ${
-                                product.availability === 'in_stock'
-                                  ? 'text-green-400'
-                                  : product.availability === 'limited'
-                                    ? 'text-amber-300'
-                                    : 'text-red-400'
-                              }`}>
-                                {product.availability === 'in_stock'
-                                  ? t('products.inStock')
-                                  : product.availability === 'limited'
-                                    ? t('products.limited')
-                                    : t('products.outOfStock')}
-                              </p>
-                            </div>
-                          </div>
-
-                          <Button
-                            className="w-full"
-                            onClick={() => navigate(`/products/${encodeURIComponent(product.id)}`)}
-                            disabled={product.availability === 'out_of_stock'}
-                          >
-                            {t('common.buy')}
-                          </Button>
+                        <div>
+                          <p className="text-sm text-gray-400">{t('products.availability')}</p>
+                          <p className={'text-sm font-semibold ' + (
+                            product.availability === 'in_stock'
+                              ? 'text-green-400'
+                              : product.availability === 'limited'
+                                ? 'text-amber-300'
+                                : 'text-red-400'
+                          )}>
+                            {product.availability === 'in_stock'
+                              ? t('products.inStock')
+                              : product.availability === 'limited'
+                                ? t('products.limited')
+                                : t('products.outOfStock')}
+                          </p>
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )
-          })}
-        </div>
+                      </div>
 
-        {normalizedQuery && allCategoriesLoaded && visibleOfferCount === 0 && (
-          <Card className="mt-10">
-            <p className="text-gray-400 text-center">{t('products.noSearchResults')}</p>
-          </Card>
-        )}
+                      <Button
+                        className="w-full"
+                        onClick={() => navigate('/products/' + encodeURIComponent(product.id))}
+                        disabled={product.availability === 'out_of_stock'}
+                      >
+                        {t('common.buy')}
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   )
 }
 
