@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Gamepad2, Flame, ChevronDown } from 'lucide-react'
+import { Gamepad2, ChevronDown } from 'lucide-react'
 import { useAppContext } from '@/contexts/AppContext'
 import { Button, Card, LoadingSpinner } from '@/components'
 import { productsService } from '@/services/productsService'
@@ -183,7 +183,6 @@ function Products() {
     void loadCategory(selectedCategoryId)
   }, [categories, loadCategory, selectedCategoryId])
 
-  const featuredCategories = useMemo(() => getFeaturedCategories(categories), [categories])
   const selectedCategory = categories.find((category) =>
     category.category.category_id === selectedCategoryId
   )
@@ -315,62 +314,6 @@ function Products() {
           <h1 className="mb-3 text-3xl font-bold text-white sm:text-4xl">{t('products.title')}</h1>
           <p className="text-gray-400">{t('products.subtitle')}</p>
         </header>
-
-        <section aria-labelledby="featured-games-title" className="mb-12">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <p className="mb-1 text-sm font-semibold text-amical-orange">{t('products.selectionTitle')}</p>
-              <h2 id="featured-games-title" className="text-2xl font-bold text-white">
-                {t('products.featuredGames')}
-              </h2>
-            </div>
-            <span className="hidden text-sm text-gray-500 sm:block">{t('products.selectionSubtitle')}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {featuredCategories.map((category) => {
-              const categoryId = category.category.category_id
-              const isSelected = categoryId === selectedCategoryId
-              return (
-                <button
-                  key={categoryId}
-                  type="button"
-                  onClick={() => selectCategory(categoryId)}
-                  disabled={Boolean(isLoadingOffers) && !isSelected}
-                  aria-pressed={isSelected}
-                  className={'group rounded-2xl border p-4 text-left transition ' + (
-                    isSelected
-                      ? 'border-amical-orange bg-amical-dark-secondary shadow-[0_0_0_1px_rgba(255,107,53,0.2)]'
-                      : 'border-white/10 bg-white/[0.03] hover:border-amical-orange/50 hover:bg-amical-dark-secondary'
-                  ) + (isLoadingOffers && !isSelected ? ' cursor-not-allowed opacity-50' : '')}
-                >
-                  <div className="mb-4 flex items-start justify-between gap-2">
-                    {category.category.image_url ? (
-                      <img
-                        src={category.category.image_url}
-                        alt=""
-                        className="h-12 w-12 rounded-xl border border-white/10 object-cover"
-                      />
-                    ) : (
-                      <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-amical-dark-tertiary text-amical-orange">
-                        <Gamepad2 size={22} />
-                      </span>
-                    )}
-                    {isFeaturedCategory(category) && (
-                      <Flame size={16} className="text-amical-orange" aria-label={t('products.featured')} />
-                    )}
-                  </div>
-                  <p className="line-clamp-2 min-h-12 font-semibold text-white">
-                    {category.category.category_name}
-                  </p>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {isSelected ? t('products.selectedGame') : t('products.chooseGame')}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
-        </section>
 
         <section aria-labelledby="selected-game-title" className="scroll-mt-8">
           <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
