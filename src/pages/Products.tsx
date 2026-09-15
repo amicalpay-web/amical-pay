@@ -15,6 +15,7 @@ function Products() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [loadedCategories, setLoadedCategories] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let active = true
@@ -43,6 +44,36 @@ function Products() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!selectedCategoryId) return
+    const selected = categories.find(
+      (category) => category.category.category_id === selectedCategoryId
+    )
+    if (!selected || loadedCategories[selectedCategoryId]) return
+
+    let active = true
+    void productsService.getCategoryProducts(selectedCategoryId)
+      .then((products) => {
+        if (!active) return
+        setCategories((current) => current.map((category) =>
+          category.category.category_id === selectedCategoryId
+            ? { ...category, products }
+            : category
+        ))
+        setLoadedCategories((current) => ({ ...current, [selectedCategoryId]: true }))
+      })
+      .catch((loadError) => {
+        if (active) {
+          setLoadedCategories((current) => ({ ...current, [selectedCategoryId]: true }))
+          setError(loadError instanceof Error ? loadError.message : 'Impossible de charger les offres')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [categories, loadedCategories, selectedCategoryId])
 
   const selectedCategory = categories.find(
     (category) => category.category.category_id === selectedCategoryId
