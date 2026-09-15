@@ -91,7 +91,7 @@ export function Footer() {
       </div>
 
       <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/[0.06] pt-6 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
-        <p>© {new Date().getFullYear()} AMICAL PAY. Tous droits réservés.</p>
+        <p>© {new Date().getFullYear()} Amical Pay. Tous droits réservés.</p>
         <div className="flex gap-4">
           <Link to="/products?category=free_fire_latam" className="hover:text-gray-300">Free Fire</Link>
           <Link to="/products" className="hover:text-gray-300">Tous les jeux</Link>
