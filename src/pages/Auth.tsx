@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Input } from '@/components'
+import { SeoHead } from '@/components/SeoHead'
 import { useAuth } from '@/contexts/AuthContext'
 
 type AuthMode = 'login' | 'signup'
@@ -73,6 +74,12 @@ function Auth() {
 
   return (
     <main className="min-h-[calc(100vh-4.5rem)] bg-amical-dark px-4 py-12">
+      <SeoHead
+        title={mode === 'signup' ? 'Créer un compte' : 'Connexion'}
+        path={mode === 'signup' ? '/signup' : '/login'}
+        noindex
+      />
+
       <div className="mx-auto max-w-md">
         <div className="mb-8 text-center">
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-amical-orange">
