@@ -224,20 +224,20 @@ router.get('/catalog', async (_req: Request, res: Response, next: NextFunction) 
 router.get('/catalog/:categoryId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const item = await categoryWithOffers(req.params.categoryId)
+    const validationCategory = await fazer.getValidationCategoryForTopup(
+      item.category.category_id,
+      item.category.category_name
+    )
+    const products = item.offers.map((offer, index) =>
+      normalizeOffer(offer, item.category, item.fields, index, validationCategory)
+    )
+
     res.setHeader('Cache-Control', 'private, max-age=300')
     res.json({
       status: 'success',
       source: 'fazer',
       category: item.category,
-      products: item.offers.map((offer, index) =>
-        normalizeOffer(
-          offer,
-          item.category,
-          item.fields,
-          index,
-          await fazer.getValidationCategoryForTopup(item.category.category_id, item.category.category_name)
-        )
-      ),
+      products,
       fields: item.fields || [],
     })
   } catch (error) {
