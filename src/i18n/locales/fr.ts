@@ -61,8 +61,6 @@ export const fr = {
     loadedOffers: '{{count}} offres disponibles',
     gameSelectionHint: 'Changez de jeu quand vous le souhaitez.',
     noGames: 'Aucun jeu disponible.',
-    title: 'Choisissez votre jeu',
-    subtitle: 'Sélectionnez un jeu pour afficher ses offres. Un seul catalogue est chargé à la fois.',
     selectRegion: 'Sélectionner une région',
     allCatalogs: 'Tous les catalogues',
     categories: 'Catégories',
